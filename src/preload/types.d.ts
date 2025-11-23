@@ -1,15 +1,20 @@
-import type { Todo } from '@shared/types'
+import type { ProjectNote, Task } from '@shared/types'
 
 declare global {
   interface Window {
     irodori: {
       toggleTool: (toolName: string, active: boolean) => void
-      todos: {
-        list: () => Promise<Todo[]>
-        add: (payload: { id: string; content: string; isDone?: boolean }) => Promise<Todo>
-        toggle: (id: string, isDone?: boolean) => Promise<Todo | null>
+      tasks: {
+        list: () => Promise<Task[]>
+        add: (payload: { id: string; title: string; description?: string; category: string; isDone?: boolean }) => Promise<Task>
+        update: (payload: { id: string; title?: string; description?: string | null; isDone?: boolean }) =>
+          Promise<Task | null>
         remove: (id: string) => Promise<{ id: string }>
+        addNote: (payload: { id: string; taskId: string; content: string }) => Promise<ProjectNote>
+        removeNote: (id: string) => Promise<{ id: string }>
       }
+      onTasksChanged: (callback: () => void) => void
+      openQuickAdd: (category: string) => void
     }
   }
 }

@@ -1,16 +1,29 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import type { IpcMainEvent, IpcMainInvokeEvent } from 'electron'
 import {
-  addTodo,
-  deleteTodo,
-  getTodos,
+  addProjectNote,
+  addTask,
+  deleteProjectNote,
+  deleteTask,
+  getTasks,
   initDatabase,
   startSyncHeartbeat,
   stopSyncHeartbeat,
-  toggleTodo,
+  updateTask,
 } from './db/database'
 import { app, BrowserWindow, ipcMain } from './electron'
-import { closeTooDooOverlay, configureRendererTarget, createLauncherWindow, createTooDooOverlay } from './windowManager'
+import type { TaskCategory } from '@shared/types'
+import {
+  closeTooDooOverlay,
+  configureRendererTarget,
+  createLauncherWindow,
+  createTooDooOverlay,
+  createQuickAddWindow,
+  registerQuickAddShortcuts,
+  unregisterQuickAddShortcuts,
+  broadcastTaskChange,
+} from './windowManager'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -24,6 +37,7 @@ const bootstrap = async () => {
   configureRendererTarget({ devServerUrl, indexHtml })
   startSyncHeartbeat()
   createLauncherWindow()
+  registerQuickAddShortcuts()
 }
 
 app.whenReady().then(bootstrap)
@@ -36,25 +50,54 @@ app.on('activate', () => {
 
 app.on('window-all-closed', () => {
   stopSyncHeartbeat()
+  unregisterQuickAddShortcuts()
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
-ipcMain.on('toggle-tool', (_event, toolName: string, isActive: boolean) => {
+ipcMain.on('toggle-tool', (_event: IpcMainEvent, toolName: string, isActive: boolean) => {
   if (toolName === 'TooDoo') {
     isActive ? createTooDooOverlay() : closeTooDooOverlay()
   }
 })
 
-ipcMain.handle('todos:list', () => getTodos())
-ipcMain.handle('todos:add', (_event, payload: { id: string; content: string; isDone?: boolean }) =>
-  addTodo(payload),
+ipcMain.handle('tasks:list', (_event: IpcMainInvokeEvent) => getTasks())
+ipcMain.handle(
+  'tasks:add',
+  (
+    _event: IpcMainInvokeEvent,
+    payload: { id: string; title: string; description?: string; category: TaskCategory; isDone?: boolean },
+  ) => {
+    const task = addTask(payload)
+    broadcastTaskChange()
+    return task
+  },
 )
-ipcMain.handle('todos:toggle', (_event, payload: { id: string; isDone?: boolean }) =>
-  toggleTodo(payload.id, payload.isDone),
+ipcMain.handle(
+  'tasks:update',
+  (_event: IpcMainInvokeEvent, payload: { id: string; title?: string; description?: string | null; isDone?: boolean }) => {
+    const task = updateTask(payload)
+    broadcastTaskChange()
+    return task
+  },
 )
-ipcMain.handle('todos:delete', (_event, id: string) => {
-  deleteTodo(id)
+ipcMain.handle('tasks:delete', (_event: IpcMainInvokeEvent, id: string) => {
+  deleteTask(id)
+  broadcastTaskChange()
   return { id }
+})
+ipcMain.handle('tasks:note:add', (_event: IpcMainInvokeEvent, payload: { id: string; taskId: string; content: string }) => {
+  const note = addProjectNote(payload)
+  broadcastTaskChange()
+  return note
+})
+ipcMain.handle('tasks:note:delete', (_event: IpcMainInvokeEvent, id: string) => {
+  deleteProjectNote(id)
+  broadcastTaskChange()
+  return { id }
+})
+
+ipcMain.on('quick-add:open', (_event: IpcMainEvent, category: string) => {
+  createQuickAddWindow(category)
 })

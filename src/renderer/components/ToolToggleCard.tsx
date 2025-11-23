@@ -1,6 +1,6 @@
 type ToolToggleCardProps = {
   title: string
-  description: string
+  description?: string
   badge?: string
   isActive: boolean
   onToggle: () => void
@@ -9,10 +9,8 @@ type ToolToggleCardProps = {
 const ToolToggleCard = ({ title, description, badge, isActive, onToggle }: ToolToggleCardProps) => {
   return (
     <div className="tool-card">
-      <div>
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </div>
+      <h3>{title}</h3>
+      {description ? <p>{description}</p> : null}
       <div className="tool-footer">
         <span className="tag">{isActive ? 'Active' : 'Sleeping'}</span>
         <button className={`button ${isActive ? 'button-ghost' : ''}`} onClick={onToggle}>
