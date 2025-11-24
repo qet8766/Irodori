@@ -25,13 +25,22 @@ const api = {
         output: string
         pasted: boolean
         error?: string
+        timing?: { totalMs: number; copyMs?: number; apiMs?: number; pasteMs?: number }
       }>,
   },
   clipboard: {
     readText: () => clipboard.readText(),
     writeText: (text: string) => clipboard.writeText(text ?? ''),
   },
-  onTranslyResult: (callback: (payload: { input: string; output: string; pasted: boolean; error?: string }) => void) => {
+  onTranslyResult: (
+    callback: (payload: {
+      input: string
+      output: string
+      pasted: boolean
+      error?: string
+      timing?: { totalMs: number; copyMs?: number; apiMs?: number; pasteMs?: number }
+    }) => void,
+  ) => {
     ipcRenderer.removeAllListeners('transly:result')
     ipcRenderer.on('transly:result', (_event, payload) => callback(payload))
   },

@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-type TranslyResult = { input: string; output: string; pasted: boolean; error?: string }
+type TranslyResult = {
+  input: string
+  output: string
+  pasted: boolean
+  error?: string
+  timing?: { totalMs: number; copyMs?: number; apiMs?: number; pasteMs?: number }
+}
 
 const Transly = () => {
   const navigate = useNavigate()
@@ -81,6 +87,20 @@ const Transly = () => {
                 <p className="muted small-text">Transly output</p>
                 <div className="result-chip highlight">{lastResult.output}</div>
               </div>
+              {lastResult.timing ? (
+                <>
+                  <div>
+                    <p className="muted small-text">Total</p>
+                    <div className="result-chip">{lastResult.timing.totalMs ?? 0} ms</div>
+                  </div>
+                  <div>
+                    <p className="muted small-text">Copy / API / Paste</p>
+                    <div className="result-chip">
+                      {(lastResult.timing.copyMs ?? 0)} / {(lastResult.timing.apiMs ?? 0)} / {(lastResult.timing.pasteMs ?? 0)} ms
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
           ) : (
             <p className="muted">No corrections yet.</p>

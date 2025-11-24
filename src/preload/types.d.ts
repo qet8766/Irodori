@@ -18,13 +18,25 @@ declare global {
         correctWord: (
           word: string,
           paste?: boolean,
-        ) => Promise<{ input: string; output: string; pasted: boolean; error?: string }>
+        ) => Promise<{
+          input: string
+          output: string
+          pasted: boolean
+          error?: string
+          timing?: { totalMs: number; copyMs?: number; apiMs?: number; pasteMs?: number }
+        }>
       }
       clipboard: {
         readText: () => string
         writeText: (text: string) => void
       }
-      onTranslyResult: (callback: (payload: { input: string; output: string; pasted: boolean; error?: string }) => void) => void
+      onTranslyResult: (callback: (payload: {
+        input: string
+        output: string
+        pasted: boolean
+        error?: string
+        timing?: { totalMs: number; copyMs?: number; apiMs?: number; pasteMs?: number }
+      }) => void) => void
     }
   }
 }
