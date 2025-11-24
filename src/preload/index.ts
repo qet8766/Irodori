@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, clipboard } from 'electron'
 import type { ProjectNote, Task } from '@shared/types'
 
 const api = {
@@ -17,6 +17,23 @@ const api = {
   onTasksChanged: (callback: () => void) => {
     ipcRenderer.removeAllListeners('tasks:changed')
     ipcRenderer.on('tasks:changed', callback)
+  },
+  transly: {
+    correctWord: (word: string, paste = true) =>
+      ipcRenderer.invoke('transly:correct', { word, paste }) as Promise<{
+        input: string
+        output: string
+        pasted: boolean
+        error?: string
+      }>,
+  },
+  clipboard: {
+    readText: () => clipboard.readText(),
+    writeText: (text: string) => clipboard.writeText(text ?? ''),
+  },
+  onTranslyResult: (callback: (payload: { input: string; output: string; pasted: boolean; error?: string }) => void) => {
+    ipcRenderer.removeAllListeners('transly:result')
+    ipcRenderer.on('transly:result', (_event, payload) => callback(payload))
   },
 }
 

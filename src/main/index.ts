@@ -21,7 +21,11 @@ import {
   registerQuickAddShortcuts,
   unregisterQuickAddShortcuts,
   broadcastTaskChange,
+  registerTranslyShortcut,
+  unregisterTranslyShortcut,
+  broadcastTranslyResult,
 } from './windowManager'
+import { correctWord, correctFromActiveSelection } from './transly'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -39,6 +43,11 @@ const bootstrap = async () => {
 
 app.whenReady().then(bootstrap)
 
+const handleTranslyHotkey = async () => {
+  const result = await correctFromActiveSelection()
+  broadcastTranslyResult(result)
+}
+
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createLauncherWindow()
@@ -47,6 +56,7 @@ app.on('activate', () => {
 
 app.on('window-all-closed', () => {
   unregisterQuickAddShortcuts()
+  unregisterTranslyShortcut()
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -55,6 +65,8 @@ app.on('window-all-closed', () => {
 ipcMain.on('toggle-tool', (_event: IpcMainEvent, toolName: string, isActive: boolean) => {
   if (toolName === 'TooDoo') {
     isActive ? createTooDooOverlay() : closeTooDooOverlay()
+  } else if (toolName === 'Transly') {
+    isActive ? registerTranslyShortcut(handleTranslyHotkey) : unregisterTranslyShortcut()
   }
 })
 
@@ -96,4 +108,8 @@ ipcMain.handle('tasks:note:delete', (_event: IpcMainInvokeEvent, id: string) => 
 
 ipcMain.on('quick-add:open', (_event: IpcMainEvent, category: string) => {
   createQuickAddWindow(category)
+})
+
+ipcMain.handle('transly:correct', async (_event: IpcMainInvokeEvent, payload: { word: string; paste?: boolean }) => {
+  return correctWord(payload.word, payload.paste ?? true)
 })

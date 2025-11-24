@@ -14,6 +14,17 @@ declare global {
         removeNote: (id: string) => Promise<{ id: string }>
       }
       onTasksChanged: (callback: () => void) => void
+      transly: {
+        correctWord: (
+          word: string,
+          paste?: boolean,
+        ) => Promise<{ input: string; output: string; pasted: boolean; error?: string }>
+      }
+      clipboard: {
+        readText: () => string
+        writeText: (text: string) => void
+      }
+      onTranslyResult: (callback: (payload: { input: string; output: string; pasted: boolean; error?: string }) => void) => void
     }
   }
 }

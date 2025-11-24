@@ -2,6 +2,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { BrowserWindow as BrowserWindowType } from 'electron'
 import { BrowserWindow, screen, globalShortcut } from './electron'
+import type { TranslyResult } from './transly'
 
 type RendererTarget = {
   devServerUrl?: string
@@ -184,5 +185,24 @@ export const unregisterQuickAddShortcuts = () => {
 export const broadcastTaskChange = () => {
   BrowserWindow.getAllWindows().forEach((win: BrowserWindowType) => {
     win.webContents.send('tasks:changed')
+  })
+}
+
+const translyAccelerator = 'Alt+Shift+T'
+
+export const registerTranslyShortcut = (runner: () => void | Promise<void>) => {
+  if (globalShortcut.isRegistered(translyAccelerator)) globalShortcut.unregister(translyAccelerator)
+  globalShortcut.register(translyAccelerator, () => {
+    void runner()
+  })
+}
+
+export const unregisterTranslyShortcut = () => {
+  if (globalShortcut.isRegistered(translyAccelerator)) globalShortcut.unregister(translyAccelerator)
+}
+
+export const broadcastTranslyResult = (payload: TranslyResult) => {
+  BrowserWindow.getAllWindows().forEach((win: BrowserWindowType) => {
+    win.webContents.send('transly:result', payload)
   })
 }
