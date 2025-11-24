@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import net from 'node:net'
-import Database from 'better-sqlite3'
+import BetterSqlite3 from 'better-sqlite3'
+import { Database as SQLiteCloudDatabase } from '@sqlitecloud/drivers'
 import { app } from '../electron'
 import type { ProjectNote, Task, TaskCategory } from '@shared/types'
 
@@ -27,12 +27,27 @@ type ProjectNoteRow = {
   is_deleted: number
 }
 
-let db: Database.Database | null = null
+type CloudTaskRow = {
+  id: string
+  name: string
+  description?: string | null
+  section?: string | null
+  created?: string | null
+}
+
+type CloudProjectItemRow = {
+  id: string
+  task_id: string
+  text?: string | null
+}
+
+let db: BetterSqlite3.Database | null = null
+let cloudDb: SQLiteCloudDatabase | null = null
 let syncHeartbeat: NodeJS.Timeout | null = null
 const SQLITE_CLOUD_URL =
   'sqlitecloud://cueadayivk.g5.sqlite.cloud:8860/auth.sqlitecloud?apikey=0JQcewFfcdbetJA6rZKLiHRW6Z2SgiUqrYcH8f7fQPM'
 
-const createTables = (database: Database.Database) => {
+const createTables = (database: BetterSqlite3.Database) => {
   database.exec(`
     CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY,
@@ -64,37 +79,6 @@ const createTables = (database: Database.Database) => {
   `)
 }
 
-const probeSocket = (connectionString: string): Promise<boolean> =>
-  new Promise((resolve) => {
-    try {
-      const parsed = new URL(connectionString)
-      const port = Number(parsed.port) || 8860
-      const socket = net.connect({ host: parsed.hostname, port, timeout: 3_000 }, () => {
-        socket.end()
-        resolve(true)
-      })
-
-      socket.on('error', () => resolve(false))
-      socket.on('timeout', () => {
-        socket.destroy()
-        resolve(false)
-      })
-    } catch (error) {
-      console.warn('[Irodori] Failed to parse SQLite Cloud URL', error)
-      resolve(false)
-    }
-  })
-
-export const verifySQLiteCloudConnection = async () => {
-  const reachable = await probeSocket(SQLITE_CLOUD_URL)
-  if (reachable) {
-    console.info('[Irodori] SQLite Cloud endpoint reachable', SQLITE_CLOUD_URL)
-  } else {
-    console.warn('[Irodori] Unable to reach SQLite Cloud endpoint', SQLITE_CLOUD_URL)
-  }
-  return reachable
-}
-
 export const initDatabase = () => {
   if (db) return db
 
@@ -102,12 +86,13 @@ export const initDatabase = () => {
   fs.mkdirSync(userData, { recursive: true })
   const dbPath = path.join(userData, 'irodori.db')
 
-  const instance = new Database(dbPath)
+  const instance = new BetterSqlite3(dbPath)
   instance.pragma('journal_mode = WAL')
   createTables(instance)
 
   db = instance
   void verifySQLiteCloudConnection()
+  void syncFromCloud()
   return instance
 }
 
@@ -136,6 +121,193 @@ const toProjectNote = (row: ProjectNoteRow): ProjectNote => ({
   isDeleted: Boolean(row.is_deleted),
 })
 
+const parseCloudTimestamp = (value?: string | null) => {
+  if (!value) return Date.now()
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : Date.now()
+}
+
+const normalizeCategory = (value?: string | null): TaskCategory =>
+  value === 'long_term' || value === 'project' || value === 'immediate' ? value : 'short_term'
+
+const closeCloudDb = async () => {
+  if (!cloudDb) return
+  try {
+    cloudDb.close()
+  } catch {
+    // ignore close errors
+  } finally {
+    cloudDb = null
+  }
+}
+
+const getCloudDb = async (): Promise<SQLiteCloudDatabase | null> => {
+  if (cloudDb?.isConnected?.()) return cloudDb
+
+  try {
+    const instance = new SQLiteCloudDatabase(SQLITE_CLOUD_URL)
+    await instance.sql('SELECT 1')
+    cloudDb = instance
+    return instance
+  } catch (error) {
+    console.warn('[Irodori] Unable to initialize SQLite Cloud connection', error)
+    await closeCloudDb()
+    return null
+  }
+}
+
+export const verifySQLiteCloudConnection = async () => {
+  const reachable = await getCloudDb()
+  if (reachable) {
+    console.info('[Irodori] SQLite Cloud endpoint reachable', SQLITE_CLOUD_URL)
+    return true
+  }
+
+  console.warn('[Irodori] Unable to reach SQLite Cloud endpoint', SQLITE_CLOUD_URL)
+  return false
+}
+
+const fetchCloudSnapshot = async () => {
+  const client = await getCloudDb()
+  if (!client) return null
+
+  try {
+    const [tasks, notes] = await Promise.all([
+      client.sql('SELECT id, name, description, section, created FROM tasks'),
+      client.sql('SELECT id, task_id, text FROM project_items'),
+    ])
+
+    return {
+      tasks: Array.isArray(tasks) ? (tasks as CloudTaskRow[]) : [],
+      notes: Array.isArray(notes) ? (notes as CloudProjectItemRow[]) : [],
+    }
+  } catch (error) {
+    console.warn('[Irodori] Failed to fetch SQLite Cloud snapshot', error)
+    await closeCloudDb()
+    return null
+  }
+}
+
+const syncFromCloud = async () => {
+  const snapshot = await fetchCloudSnapshot()
+  if (!snapshot) return false
+  const database = ensureDb()
+  const now = Date.now()
+
+  const taskRows: TaskRow[] = snapshot.tasks.map((row) => {
+    const createdAt = parseCloudTimestamp(row.created)
+    return {
+      id: row.id,
+      title: row.name?.trim() || 'Untitled task',
+      description: row.description?.trim() || null,
+      category: normalizeCategory(row.section),
+      is_done: 0,
+      created_at: createdAt,
+      updated_at: createdAt,
+      is_deleted: 0,
+    }
+  })
+
+  const noteRows: ProjectNoteRow[] = snapshot.notes.map((row) => ({
+    id: row.id,
+    task_id: row.task_id,
+    content: (row.text ?? '').trim(),
+    created_at: now,
+    updated_at: now,
+    is_deleted: 0,
+  }))
+
+  if (taskRows.length) {
+    const upsertTask = database.prepare(
+      `
+        INSERT INTO tasks (id, title, description, category, is_done, created_at, updated_at, is_deleted)
+        VALUES (@id, @title, @description, @category, @is_done, @created_at, @updated_at, @is_deleted)
+        ON CONFLICT(id) DO UPDATE SET
+          title = excluded.title,
+          description = excluded.description,
+          category = excluded.category,
+          updated_at = MAX(tasks.updated_at, excluded.updated_at),
+          is_deleted = 0
+      `,
+    )
+    const upsertTasksTx = database.transaction((rows: TaskRow[]) => {
+      rows.forEach((row) => upsertTask.run(row))
+    })
+    upsertTasksTx(taskRows)
+  }
+
+  if (noteRows.length) {
+    const upsertNote = database.prepare(
+      `
+        INSERT INTO project_notes (id, task_id, content, created_at, updated_at, is_deleted)
+        VALUES (@id, @task_id, @content, @created_at, @updated_at, @is_deleted)
+        ON CONFLICT(id) DO UPDATE SET
+          task_id = excluded.task_id,
+          content = excluded.content,
+          updated_at = excluded.updated_at,
+          is_deleted = 0
+      `,
+    )
+    const upsertNotesTx = database.transaction((rows: ProjectNoteRow[]) => {
+      rows.forEach((row) => upsertNote.run(row))
+    })
+    upsertNotesTx(noteRows)
+  }
+
+  return true
+}
+
+const pushTaskToCloud = async (row: TaskRow) => {
+  const client = await getCloudDb()
+  if (!client) return
+
+  try {
+    await client.sql(
+      'INSERT OR REPLACE INTO tasks (id, name, description, section, created) VALUES (?, ?, ?, ?, ?)',
+      row.id,
+      row.title,
+      row.description ?? '',
+      row.category,
+      new Date(row.created_at).toISOString(),
+    )
+  } catch (error) {
+    console.warn('[Irodori] Failed to push task to SQLite Cloud', error)
+  }
+}
+
+const deleteTaskFromCloud = async (id: string) => {
+  const client = await getCloudDb()
+  if (!client) return
+
+  try {
+    await client.sql('DELETE FROM tasks WHERE id = ?', id)
+  } catch (error) {
+    console.warn('[Irodori] Failed to delete task from SQLite Cloud', error)
+  }
+}
+
+const pushProjectNoteToCloud = async (row: ProjectNoteRow) => {
+  const client = await getCloudDb()
+  if (!client) return
+
+  try {
+    await client.sql('INSERT OR REPLACE INTO project_items (id, task_id, text) VALUES (?, ?, ?)', row.id, row.task_id, row.content)
+  } catch (error) {
+    console.warn('[Irodori] Failed to push project note to SQLite Cloud', error)
+  }
+}
+
+const deleteProjectNoteFromCloud = async (id: string) => {
+  const client = await getCloudDb()
+  if (!client) return
+
+  try {
+    await client.sql('DELETE FROM project_items WHERE id = ?', id)
+  } catch (error) {
+    console.warn('[Irodori] Failed to delete project note from SQLite Cloud', error)
+  }
+}
+
 const enqueueChange = (action: SyncAction, payload: Record<string, unknown>) => {
   const database = ensureDb()
   const insert = database.prepare(
@@ -148,7 +320,7 @@ const enqueueChange = (action: SyncAction, payload: Record<string, unknown>) => 
   })
 }
 
-export const getTasks = (): Task[] => {
+const readLocalTasks = (): Task[] => {
   const database = ensureDb()
   const rows = database
     .prepare(
@@ -192,6 +364,11 @@ export const getTasks = (): Task[] => {
   return tasks
 }
 
+export const getTasks = async (): Promise<Task[]> => {
+  await syncFromCloud()
+  return readLocalTasks()
+}
+
 export const addTask = (payload: {
   id: string
   title: string
@@ -222,6 +399,7 @@ export const addTask = (payload: {
     .run(row)
 
   enqueueChange('INSERT', row)
+  void pushTaskToCloud(row)
   return toTask(row)
 }
 
@@ -230,6 +408,7 @@ export const updateTask = (payload: {
   title?: string
   description?: string | null
   isDone?: boolean
+  category?: TaskCategory
 }): Task | null => {
   const database = ensureDb()
   const existing = database
@@ -249,6 +428,7 @@ export const updateTask = (payload: {
         : typeof payload.description === 'string'
           ? payload.description.trim()
           : existing.description,
+    category: payload.category ? normalizeCategory(payload.category) : existing.category,
     is_done: typeof payload.isDone === 'boolean' ? (payload.isDone ? 1 : 0) : existing.is_done,
     updated_at: Date.now(),
   }
@@ -258,6 +438,7 @@ export const updateTask = (payload: {
       `UPDATE tasks
        SET title = @title,
            description = @description,
+           category = @category,
            is_done = @is_done,
            updated_at = @updated_at
        WHERE id = @id`,
@@ -265,6 +446,7 @@ export const updateTask = (payload: {
     .run(updated)
 
   enqueueChange('UPDATE', updated)
+  void pushTaskToCloud(updated)
   return toTask(updated)
 }
 
@@ -275,6 +457,7 @@ export const deleteTask = (id: string) => {
     .prepare('UPDATE tasks SET is_deleted = 1, updated_at = @updated_at WHERE id = @id')
     .run({ id, updated_at })
   enqueueChange('DELETE', { id, updated_at })
+  void deleteTaskFromCloud(id)
 }
 
 export const addProjectNote = (payload: { id: string; taskId: string; content: string }): ProjectNote => {
@@ -297,6 +480,7 @@ export const addProjectNote = (payload: { id: string; taskId: string; content: s
     .run(row)
 
   enqueueChange('INSERT', row)
+  void pushProjectNoteToCloud(row)
   return toProjectNote(row)
 }
 
@@ -307,6 +491,7 @@ export const deleteProjectNote = (id: string) => {
     .prepare('UPDATE project_notes SET is_deleted = 1, updated_at = @updated_at WHERE id = @id')
     .run({ id, updated_at })
   enqueueChange('DELETE', { id, updated_at })
+  void deleteProjectNoteFromCloud(id)
 }
 
 export const startSyncHeartbeat = () => {

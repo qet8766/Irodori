@@ -1,4 +1,4 @@
-export type TaskCategory = 'short_term' | 'long_term' | 'project'
+export type TaskCategory = 'short_term' | 'long_term' | 'project' | 'immediate'
 
 export interface ProjectNote {
   id: string

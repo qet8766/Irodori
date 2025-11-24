@@ -7,7 +7,7 @@ declare global {
       tasks: {
         list: () => Promise<Task[]>
         add: (payload: { id: string; title: string; description?: string; category: string; isDone?: boolean }) => Promise<Task>
-        update: (payload: { id: string; title?: string; description?: string | null; isDone?: boolean }) =>
+        update: (payload: { id: string; title?: string; description?: string | null; isDone?: boolean; category?: string }) =>
           Promise<Task | null>
         remove: (id: string) => Promise<{ id: string }>
         addNote: (payload: { id: string; taskId: string; content: string }) => Promise<ProjectNote>

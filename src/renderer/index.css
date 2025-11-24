@@ -160,11 +160,58 @@ a {
   font-size: 14px;
 }
 
+.overlay-shell.immediate-mode {
+  background: radial-gradient(circle at 20% 20%, rgba(248, 113, 113, 0.14), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(239, 68, 68, 0.16), transparent 28%),
+    #1a0f0f;
+  border-color: rgba(248, 113, 113, 0.35);
+  box-shadow: 0 16px 40px rgba(127, 29, 29, 0.5);
+}
+
 .drag-bar {
   height: 10px;
   margin: -6px -6px 4px;
   -webkit-app-region: drag;
   cursor: move;
+}
+
+.overlay-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin: -8px -8px 2px;
+  border-radius: 16px 16px 12px 12px;
+  background: linear-gradient(90deg, rgba(94, 234, 212, 0.16), rgba(96, 165, 250, 0.14));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  -webkit-app-region: drag;
+  cursor: move;
+}
+
+.overlay-shell.immediate-mode .overlay-topbar {
+  background: linear-gradient(90deg, rgba(248, 113, 113, 0.24), rgba(239, 68, 68, 0.2));
+  border-color: rgba(248, 113, 113, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.grip-dots {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.grip-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(233, 238, 245, 0.8);
+  box-shadow: 0 0 0 3px rgba(233, 238, 245, 0.12);
+}
+
+.topbar-label {
+  font-size: 12px;
+  color: #d7e3f3;
+  letter-spacing: 0.01em;
 }
 
 .no-drag {
@@ -184,6 +231,10 @@ a {
   font-weight: 700;
   letter-spacing: -0.01em;
   font-size: 16px;
+}
+
+.overlay-shell.immediate-mode .overlay-title {
+  color: #ffc8c8;
 }
 
 .pill {
@@ -319,6 +370,12 @@ a {
   --accent-surface: rgba(192, 132, 252, 0.14);
 }
 
+.task-section.tone-crimson {
+  --accent: #f87171;
+  --accent-soft: rgba(248, 113, 113, 0.35);
+  --accent-surface: rgba(248, 113, 113, 0.18);
+}
+
 .section-header h3 {
   margin: 0;
   letter-spacing: -0.01em;
@@ -404,6 +461,15 @@ a {
 .task-card.armed {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
+}
+
+.task-card.done .task-title {
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: line-through;
+}
+
+.task-card.done {
+  opacity: 0.8;
 }
 
 .project-card {
@@ -537,6 +603,52 @@ a {
 
 .small-text {
   font-size: 12px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 16px;
+}
+
+.modal-card {
+  width: min(360px, 100%);
+  background: rgba(20, 25, 34, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.modal-card h4 {
+  margin: 0;
+}
+
+.modal-textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fbff;
+  padding: 10px 12px;
+}
+
+.modal-textarea:focus {
+  outline: 2px solid rgba(94, 234, 212, 0.4);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .quick-add-shell {

@@ -165,6 +165,7 @@ export const registerQuickAddShortcuts = () => {
     'Alt+Shift+S': 'short_term',
     'Alt+Shift+L': 'long_term',
     'Alt+Shift+P': 'project',
+    'Alt+Shift+I': 'immediate',
   }
 
   Object.entries(shortcuts).forEach(([accelerator, category]) => {
@@ -177,6 +178,7 @@ export const unregisterQuickAddShortcuts = () => {
   globalShortcut.unregister('Alt+Shift+S')
   globalShortcut.unregister('Alt+Shift+L')
   globalShortcut.unregister('Alt+Shift+P')
+  globalShortcut.unregister('Alt+Shift+I')
 }
 
 export const broadcastTaskChange = () => {

@@ -76,7 +76,7 @@ ipcMain.handle(
 )
 ipcMain.handle(
   'tasks:update',
-  (_event: IpcMainInvokeEvent, payload: { id: string; title?: string; description?: string | null; isDone?: boolean }) => {
+  (_event: IpcMainInvokeEvent, payload: { id: string; title?: string; description?: string | null; isDone?: boolean; category?: TaskCategory }) => {
     const task = updateTask(payload)
     broadcastTaskChange()
     return task

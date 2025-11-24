@@ -7,7 +7,7 @@ const api = {
     list: () => ipcRenderer.invoke('tasks:list') as Promise<Task[]>,
     add: (payload: { id: string; title: string; description?: string; category: string; isDone?: boolean }) =>
       ipcRenderer.invoke('tasks:add', payload) as Promise<Task>,
-    update: (payload: { id: string; title?: string; description?: string | null; isDone?: boolean }) =>
+    update: (payload: { id: string; title?: string; description?: string | null; isDone?: boolean; category?: string }) =>
       ipcRenderer.invoke('tasks:update', payload) as Promise<Task | null>,
     remove: (id: string) => ipcRenderer.invoke('tasks:delete', id) as Promise<{ id: string }>,
     addNote: (payload: { id: string; taskId: string; content: string }) =>

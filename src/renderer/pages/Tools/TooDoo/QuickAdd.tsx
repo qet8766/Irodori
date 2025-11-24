@@ -6,6 +6,7 @@ const categoryTitles: Record<TaskCategory, string> = {
   short_term: 'Short-term',
   long_term: 'Long-term',
   project: 'Project',
+  immediate: 'Immediate',
 }
 
 const QuickAdd = () => {
