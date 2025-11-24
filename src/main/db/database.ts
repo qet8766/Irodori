@@ -5,8 +5,6 @@ import { Database as SQLiteCloudDatabase } from '@sqlitecloud/drivers'
 import { app } from '../electron'
 import type { ProjectNote, Task, TaskCategory } from '@shared/types'
 
-type SyncAction = 'INSERT' | 'UPDATE' | 'DELETE'
-
 type TaskRow = {
   id: string
   title: string
@@ -43,7 +41,6 @@ type CloudProjectItemRow = {
 
 let db: BetterSqlite3.Database | null = null
 let cloudDb: SQLiteCloudDatabase | null = null
-let syncHeartbeat: NodeJS.Timeout | null = null
 const SQLITE_CLOUD_URL =
   'sqlitecloud://cueadayivk.g5.sqlite.cloud:8860/auth.sqlitecloud?apikey=0JQcewFfcdbetJA6rZKLiHRW6Z2SgiUqrYcH8f7fQPM'
 
@@ -68,13 +65,6 @@ const createTables = (database: BetterSqlite3.Database) => {
       updated_at INTEGER,
       is_deleted INTEGER DEFAULT 0,
       FOREIGN KEY (task_id) REFERENCES tasks(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS sync_queue (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      action TEXT,
-      payload TEXT,
-      timestamp INTEGER
     );
   `)
 }
@@ -308,18 +298,6 @@ const deleteProjectNoteFromCloud = async (id: string) => {
   }
 }
 
-const enqueueChange = (action: SyncAction, payload: Record<string, unknown>) => {
-  const database = ensureDb()
-  const insert = database.prepare(
-    'INSERT INTO sync_queue (action, payload, timestamp) VALUES (@action, @payload, @timestamp)',
-  )
-  insert.run({
-    action,
-    payload: JSON.stringify(payload),
-    timestamp: Date.now(),
-  })
-}
-
 const readLocalTasks = (): Task[] => {
   const database = ensureDb()
   const rows = database
@@ -398,7 +376,6 @@ export const addTask = (payload: {
     )
     .run(row)
 
-  enqueueChange('INSERT', row)
   void pushTaskToCloud(row)
   return toTask(row)
 }
@@ -445,7 +422,6 @@ export const updateTask = (payload: {
     )
     .run(updated)
 
-  enqueueChange('UPDATE', updated)
   void pushTaskToCloud(updated)
   return toTask(updated)
 }
@@ -456,7 +432,6 @@ export const deleteTask = (id: string) => {
   database
     .prepare('UPDATE tasks SET is_deleted = 1, updated_at = @updated_at WHERE id = @id')
     .run({ id, updated_at })
-  enqueueChange('DELETE', { id, updated_at })
   void deleteTaskFromCloud(id)
 }
 
@@ -479,7 +454,6 @@ export const addProjectNote = (payload: { id: string; taskId: string; content: s
     )
     .run(row)
 
-  enqueueChange('INSERT', row)
   void pushProjectNoteToCloud(row)
   return toProjectNote(row)
 }
@@ -490,25 +464,5 @@ export const deleteProjectNote = (id: string) => {
   database
     .prepare('UPDATE project_notes SET is_deleted = 1, updated_at = @updated_at WHERE id = @id')
     .run({ id, updated_at })
-  enqueueChange('DELETE', { id, updated_at })
   void deleteProjectNoteFromCloud(id)
-}
-
-export const startSyncHeartbeat = () => {
-  if (syncHeartbeat) return
-  const database = ensureDb()
-  syncHeartbeat = setInterval(() => {
-    const pending = database.prepare('SELECT COUNT(*) AS count FROM sync_queue').get() as { count: number }
-    if (pending?.count && process.env.NODE_ENV === 'development') {
-      // Placeholder hook for future cloud sync; keeps the interval alive for now.
-      console.debug(`[Irodori Sync] pending operations: ${pending.count}`)
-    }
-  }, 60_000)
-}
-
-export const stopSyncHeartbeat = () => {
-  if (syncHeartbeat) {
-    clearInterval(syncHeartbeat)
-    syncHeartbeat = null
-  }
 }

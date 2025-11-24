@@ -14,7 +14,6 @@ declare global {
         removeNote: (id: string) => Promise<{ id: string }>
       }
       onTasksChanged: (callback: () => void) => void
-      openQuickAdd: (category: string) => void
     }
   }
 }

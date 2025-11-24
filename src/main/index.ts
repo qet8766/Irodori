@@ -8,8 +8,6 @@ import {
   deleteTask,
   getTasks,
   initDatabase,
-  startSyncHeartbeat,
-  stopSyncHeartbeat,
   updateTask,
 } from './db/database'
 import { app, BrowserWindow, ipcMain } from './electron'
@@ -35,7 +33,6 @@ const indexHtml = path.join(__dirname, '../../dist/index.html')
 const bootstrap = async () => {
   initDatabase()
   configureRendererTarget({ devServerUrl, indexHtml })
-  startSyncHeartbeat()
   createLauncherWindow()
   registerQuickAddShortcuts()
 }
@@ -49,7 +46,6 @@ app.on('activate', () => {
 })
 
 app.on('window-all-closed', () => {
-  stopSyncHeartbeat()
   unregisterQuickAddShortcuts()
   if (process.platform !== 'darwin') {
     app.quit()

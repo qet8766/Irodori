@@ -18,7 +18,6 @@ const api = {
     ipcRenderer.removeAllListeners('tasks:changed')
     ipcRenderer.on('tasks:changed', callback)
   },
-  openQuickAdd: (category: string) => ipcRenderer.send('quick-add:open', category),
 }
 
 contextBridge.exposeInMainWorld('irodori', api)
