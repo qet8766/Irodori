@@ -26,6 +26,16 @@ declare global {
           timing?: { totalMs: number; copyMs?: number; apiMs?: number; pasteMs?: number }
         }>
       }
+      translateOptions: {
+        select: (option: string) => void
+        close: () => void
+      }
+      onTranslateOptionsResult: (callback: (payload: {
+        input: string
+        options: string[]
+        error?: string
+        timing?: { totalMs: number; apiMs?: number; clipboardMs?: number }
+      }) => void) => void
       clipboard: {
         readText: () => string
         writeText: (text: string) => void

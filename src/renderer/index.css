@@ -767,3 +767,69 @@ a {
 .error-text {
   color: #fca5a5;
 }
+
+.translate-options-shell {
+  height: 100vh;
+  padding: 10px;
+  background: rgba(10, 15, 24, 0.96);
+  border: 1px solid rgba(94, 234, 212, 0.25);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.translate-options-header {
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.translate-options-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.translate-option-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  color: #e9eef5;
+  cursor: pointer;
+  text-align: left;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+
+.translate-option-item:hover,
+.translate-option-item:focus {
+  background: rgba(94, 234, 212, 0.12);
+  border-color: rgba(94, 234, 212, 0.35);
+  outline: none;
+}
+
+.option-number {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(94, 234, 212, 0.2);
+  color: #c3f8e7;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.option-text {
+  flex: 1;
+}

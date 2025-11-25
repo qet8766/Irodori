@@ -28,6 +28,21 @@ const api = {
         timing?: { totalMs: number; copyMs?: number; apiMs?: number; pasteMs?: number }
       }>,
   },
+  translateOptions: {
+    select: (option: string) => ipcRenderer.send('translate-options:select', option),
+    close: () => ipcRenderer.send('translate-options:close'),
+  },
+  onTranslateOptionsResult: (
+    callback: (payload: {
+      input: string
+      options: string[]
+      error?: string
+      timing?: { totalMs: number; apiMs?: number; clipboardMs?: number }
+    }) => void,
+  ) => {
+    ipcRenderer.removeAllListeners('transly:options-result')
+    ipcRenderer.on('transly:options-result', (_event, payload) => callback(payload))
+  },
   clipboard: {
     readText: () => clipboard.readText(),
     writeText: (text: string) => clipboard.writeText(text ?? ''),

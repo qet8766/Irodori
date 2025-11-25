@@ -2,7 +2,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { BrowserWindow as BrowserWindowType } from 'electron'
 import { BrowserWindow, screen, globalShortcut } from './electron'
-import type { TranslyResult } from './transly'
+import type { TranslyResult, TranslateOptionsResult } from './transly'
 
 type RendererTarget = {
   devServerUrl?: string
@@ -16,6 +16,7 @@ let rendererTarget: RendererTarget | null = null
 let launcherWindow: BrowserWindowType | null = null
 let tooDooOverlay: BrowserWindowType | null = null
 let quickAddWindow: BrowserWindowType | null = null
+let translateOptionsWindow: BrowserWindowType | null = null
 
 export const configureRendererTarget = (target: RendererTarget) => {
   rendererTarget = target
@@ -204,5 +205,79 @@ export const unregisterTranslyShortcut = () => {
 export const broadcastTranslyResult = (payload: TranslyResult) => {
   BrowserWindow.getAllWindows().forEach((win: BrowserWindowType) => {
     win.webContents.send('transly:result', payload)
+  })
+}
+
+const translateOptionsAccelerator = 'Alt+Shift+K'
+
+export const createTranslateOptionsWindow = (options: string[], input: string) => {
+  const position = computePopupPosition(320, Math.min(40 + options.length * 36, 260))
+
+  if (translateOptionsWindow) {
+    translateOptionsWindow.close()
+    translateOptionsWindow = null
+  }
+
+  const window = (translateOptionsWindow = new BrowserWindow({
+    width: 320,
+    height: Math.min(40 + options.length * 36, 260),
+    x: position.x,
+    y: position.y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    focusable: true,
+    hasShadow: true,
+    show: false,
+    webPreferences: {
+      preload: getPreloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  }))
+
+  window.on('blur', () => {
+    window.close()
+  })
+
+  window.on('ready-to-show', () => {
+    window.show()
+    window.focus()
+  })
+
+  window.on('closed', () => {
+    translateOptionsWindow = null
+  })
+
+  window.setAlwaysOnTop(true, 'screen-saver')
+  window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  const optionsQuery = encodeURIComponent(JSON.stringify(options))
+  const inputQuery = encodeURIComponent(input)
+  loadRoute(window, `/translate-options?options=${optionsQuery}&input=${inputQuery}`)
+
+  return window
+}
+
+export const closeTranslateOptionsWindow = () => {
+  translateOptionsWindow?.close()
+}
+
+export const registerTranslateOptionsShortcut = (runner: () => void | Promise<void>) => {
+  if (globalShortcut.isRegistered(translateOptionsAccelerator)) globalShortcut.unregister(translateOptionsAccelerator)
+  globalShortcut.register(translateOptionsAccelerator, () => {
+    void runner()
+  })
+}
+
+export const unregisterTranslateOptionsShortcut = () => {
+  if (globalShortcut.isRegistered(translateOptionsAccelerator)) globalShortcut.unregister(translateOptionsAccelerator)
+}
+
+export const broadcastTranslateOptionsResult = (payload: TranslateOptionsResult) => {
+  BrowserWindow.getAllWindows().forEach((win: BrowserWindowType) => {
+    win.webContents.send('transly:options-result', payload)
   })
 }

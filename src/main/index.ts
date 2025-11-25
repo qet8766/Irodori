@@ -24,8 +24,13 @@ import {
   registerTranslyShortcut,
   unregisterTranslyShortcut,
   broadcastTranslyResult,
+  registerTranslateOptionsShortcut,
+  unregisterTranslateOptionsShortcut,
+  createTranslateOptionsWindow,
+  closeTranslateOptionsWindow,
+  broadcastTranslateOptionsResult,
 } from './windowManager'
-import { correctFromActiveSelection } from './transly'
+import { correctFromActiveSelection, translateOptions, pasteSelectedOption } from './transly'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -51,6 +56,14 @@ const handleTranslyHotkey = async () => {
   }
 }
 
+const handleTranslateOptionsHotkey = async () => {
+  const result = await translateOptions()
+  broadcastTranslateOptionsResult(result)
+  if (result.options.length > 0) {
+    createTranslateOptionsWindow(result.options, result.input)
+  }
+}
+
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createLauncherWindow()
@@ -61,6 +74,7 @@ app.on('activate', () => {
 app.on('window-all-closed', () => {
   unregisterQuickAddShortcuts()
   unregisterTranslyShortcut()
+  unregisterTranslateOptionsShortcut()
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -70,7 +84,13 @@ ipcMain.on('toggle-tool', (_event: IpcMainEvent, toolName: string, isActive: boo
   if (toolName === 'TooDoo') {
     isActive ? createTooDooOverlay() : closeTooDooOverlay()
   } else if (toolName === 'Transly') {
-    isActive ? registerTranslyShortcut(handleTranslyHotkey) : unregisterTranslyShortcut()
+    if (isActive) {
+      registerTranslyShortcut(handleTranslyHotkey)
+      registerTranslateOptionsShortcut(handleTranslateOptionsHotkey)
+    } else {
+      unregisterTranslyShortcut()
+      unregisterTranslateOptionsShortcut()
+    }
   }
 })
 
@@ -113,4 +133,14 @@ ipcMain.handle('tasks:note:delete', (_event: IpcMainInvokeEvent, id: string) => 
 
 ipcMain.on('quick-add:open', (_event: IpcMainEvent, category: string) => {
   createQuickAddWindow(category)
+})
+
+// --- Translate Options Handlers ---
+ipcMain.on('translate-options:select', async (_event: IpcMainEvent, option: string) => {
+  closeTranslateOptionsWindow()
+  await pasteSelectedOption(option)
+})
+
+ipcMain.on('translate-options:close', () => {
+  closeTranslateOptionsWindow()
 })

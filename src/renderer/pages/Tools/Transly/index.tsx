@@ -14,15 +14,31 @@ type TranslyResult = {
   }
 }
 
+type TranslateOptionsResult = {
+  input: string
+  options: string[]
+  error?: string
+  timing?: {
+    totalMs: number
+    apiMs?: number
+    clipboardMs?: number
+  }
+}
+
 const Transly = () => {
   const navigate = useNavigate()
   const [lastResult, setLastResult] = useState<TranslyResult | null>(null)
+  const [lastOptionsResult, setLastOptionsResult] = useState<TranslateOptionsResult | null>(null)
   const [status, setStatus] = useState('Waiting for Shift+Alt+T…')
 
   useEffect(() => {
     window.irodori.onTranslyResult((payload: any) => {
       setLastResult(payload)
       setStatus(payload.error ? `Error: ${payload.error}` : 'Hotkey run completed.')
+    })
+    window.irodori.onTranslateOptionsResult((payload: any) => {
+      setLastOptionsResult(payload)
+      setStatus(payload.error ? `Error: ${payload.error}` : `Options received: ${payload.options.length}`)
     })
   }, [])
 
@@ -104,6 +120,64 @@ const Transly = () => {
           )}
 
           {lastResult?.error ? <p className="muted error-text">Error: {lastResult.error}</p> : null}
+        </div>
+
+        {/* Translate Options Card */}
+        <div className="transly-card">
+          <div className="card-row">
+            <h3>Translate Options</h3>
+            <span className="pill small-pill">Shift+Alt+K</span>
+          </div>
+          <p className="muted small-text">
+            Select Korean text and get multiple English translation options.
+          </p>
+        </div>
+
+        {/* Translate Options Result Card */}
+        <div className="transly-card">
+          <div className="card-row">
+            <h3>Last options</h3>
+            {lastOptionsResult ? (
+              <span className="pill small-pill">{lastOptionsResult.options.length} options</span>
+            ) : null}
+          </div>
+
+          {lastOptionsResult ? (
+            <div className="result-grid">
+              <div>
+                <p className="muted small-text">Input</p>
+                <div className="result-chip">{lastOptionsResult.input}</div>
+              </div>
+              <div>
+                <p className="muted small-text">Options</p>
+                <div className="result-chip highlight">{lastOptionsResult.options.join(', ')}</div>
+              </div>
+              {lastOptionsResult.timing?.totalMs ? (
+                <>
+                  <div>
+                    <p className="muted small-text">Total Time</p>
+                    <div className="result-chip">{lastOptionsResult.timing.totalMs} ms</div>
+                  </div>
+                  {lastOptionsResult.timing.apiMs ? (
+                    <div>
+                      <p className="muted small-text">API Time</p>
+                      <div className="result-chip highlight">{lastOptionsResult.timing.apiMs} ms</div>
+                    </div>
+                  ) : null}
+                  {lastOptionsResult.timing.clipboardMs ? (
+                    <div>
+                      <p className="muted small-text">Clipboard Time</p>
+                      <div className="result-chip">{lastOptionsResult.timing.clipboardMs} ms</div>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <p className="muted">No translate options yet.</p>
+          )}
+
+          {lastOptionsResult?.error ? <p className="muted error-text">Error: {lastOptionsResult.error}</p> : null}
         </div>
       </div>
     </div>
