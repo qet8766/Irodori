@@ -25,7 +25,7 @@ import {
   unregisterTranslyShortcut,
   broadcastTranslyResult,
 } from './windowManager'
-import { correctWord, correctFromActiveSelection } from './transly'
+import { correctFromActiveSelection } from './transly'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -44,13 +44,17 @@ const bootstrap = async () => {
 app.whenReady().then(bootstrap)
 
 const handleTranslyHotkey = async () => {
+  // This function now handles the entire Copy -> API -> Paste flow
   const result = await correctFromActiveSelection()
-  broadcastTranslyResult(result)
+  if (result) {
+    broadcastTranslyResult(result)
+  }
 }
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createLauncherWindow()
+    registerQuickAddShortcuts()
   }
 })
 
@@ -70,6 +74,7 @@ ipcMain.on('toggle-tool', (_event: IpcMainEvent, toolName: string, isActive: boo
   }
 })
 
+// --- TooDoo Handlers ---
 ipcMain.handle('tasks:list', (_event: IpcMainInvokeEvent) => getTasks())
 ipcMain.handle(
   'tasks:add',
@@ -108,8 +113,4 @@ ipcMain.handle('tasks:note:delete', (_event: IpcMainInvokeEvent, id: string) => 
 
 ipcMain.on('quick-add:open', (_event: IpcMainEvent, category: string) => {
   createQuickAddWindow(category)
-})
-
-ipcMain.handle('transly:correct', async (_event: IpcMainInvokeEvent, payload: { word: string; paste?: boolean }) => {
-  return correctWord(payload.word, payload.paste ?? true)
 })
