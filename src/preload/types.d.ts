@@ -1,4 +1,4 @@
-import type { ProjectNote, Task } from '@shared/types'
+import type { Note, ProjectNote, Task, AiruPrompt, AiruResult, AiruSettings, AiruProvider } from '@shared/types'
 
 declare global {
   interface Window {
@@ -47,6 +47,37 @@ declare global {
         error?: string
         timing?: { totalMs: number; copyMs?: number; apiMs?: number; pasteMs?: number }
       }) => void) => void
+      notes: {
+        list: () => Promise<Note[]>
+        add: (payload: { id: string; title: string; content: string }) => Promise<Note>
+        update: (payload: { id: string; title?: string; content?: string }) => Promise<Note | null>
+        remove: (id: string) => Promise<{ id: string }>
+      }
+      noteEditor: {
+        open: (noteId?: string) => void
+        close: () => void
+      }
+      onNotesChanged: (callback: () => void) => void
+      airu: {
+        prompts: {
+          list: () => Promise<AiruPrompt[]>
+          add: (payload: { id: string; title: string; content: string }) => Promise<AiruPrompt>
+          update: (payload: { id: string; title?: string; content?: string; sortOrder?: number }) => Promise<AiruPrompt | null>
+          remove: (id: string) => Promise<{ id: string }>
+          reorder: (orderedIds: string[]) => Promise<void>
+        }
+        settings: {
+          get: () => Promise<AiruSettings>
+          set: (settings: Partial<AiruSettings>) => Promise<void>
+        }
+        execute: (provider: AiruProvider, promptId: string, userInput: string) => Promise<AiruResult>
+        paste: (text: string) => void
+        close: () => void
+        openPromptEditor: () => void
+        closePromptEditor: () => void
+        onResult: (callback: (payload: AiruResult) => void) => void
+        onPromptsChanged: (callback: () => void) => void
+      }
     }
   }
 }

@@ -1,28 +1,29 @@
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type { BrowserWindow as BrowserWindowType } from 'electron'
-import { BrowserWindow, screen, globalShortcut } from './electron'
+import { app, BrowserWindow, screen, globalShortcut } from './electron'
 import type { TranslyResult, TranslateOptionsResult } from './transly'
+import type { AiruResult } from '@shared/types'
 
 type RendererTarget = {
   devServerUrl?: string
   indexHtml: string
 }
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
 let rendererTarget: RendererTarget | null = null
 let launcherWindow: BrowserWindowType | null = null
 let tooDooOverlay: BrowserWindowType | null = null
 let quickAddWindow: BrowserWindowType | null = null
 let translateOptionsWindow: BrowserWindowType | null = null
+let noteTankOverlay: BrowserWindowType | null = null
+let noteEditorWindow: BrowserWindowType | null = null
+let airuPopupWindow: BrowserWindowType | null = null
+let airuPromptEditorWindow: BrowserWindowType | null = null
 
 export const configureRendererTarget = (target: RendererTarget) => {
   rendererTarget = target
 }
 
-const getPreloadPath = () => path.join(__dirname, 'preload.cjs')
+const getPreloadPath = () => path.join(app.getAppPath(), 'dist-electron', 'preload.cjs')
 
 const loadRoute = (win: BrowserWindowType, hashPath: string) => {
   if (!rendererTarget) throw new Error('Renderer target not configured')
@@ -279,5 +280,250 @@ export const unregisterTranslateOptionsShortcut = () => {
 export const broadcastTranslateOptionsResult = (payload: TranslateOptionsResult) => {
   BrowserWindow.getAllWindows().forEach((win: BrowserWindowType) => {
     win.webContents.send('transly:options-result', payload)
+  })
+}
+
+// --- NoteTank Window Management ---
+
+const noteTankAccelerator = 'Alt+Shift+N'
+
+export const createNoteTankOverlay = () => {
+  if (noteTankOverlay) return noteTankOverlay
+
+  const { width } = screen.getPrimaryDisplay().workAreaSize
+
+  const window = (noteTankOverlay = new BrowserWindow({
+    width: 360,
+    height: 500,
+    minWidth: 320,
+    minHeight: 400,
+    x: Math.max(width - 400, 32),
+    y: 48,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: true,
+    focusable: true,
+    hasShadow: false,
+    show: true,
+    webPreferences: {
+      preload: getPreloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  }))
+
+  window.on('closed', () => {
+    noteTankOverlay = null
+  })
+
+  window.setAlwaysOnTop(true, 'screen-saver')
+  window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  loadRoute(window, '/notetank')
+  return window
+}
+
+export const closeNoteTankOverlay = () => {
+  noteTankOverlay?.close()
+}
+
+export const createNoteEditorWindow = (noteId?: string) => {
+  const position = computePopupPosition(400, 320)
+
+  if (noteEditorWindow) {
+    const route = noteId ? `/note-editor?id=${encodeURIComponent(noteId)}` : '/note-editor'
+    loadRoute(noteEditorWindow, route)
+    noteEditorWindow.setPosition(position.x, position.y)
+    noteEditorWindow.show()
+    noteEditorWindow.focus()
+    return noteEditorWindow
+  }
+
+  const window = (noteEditorWindow = new BrowserWindow({
+    width: 400,
+    height: 320,
+    x: position.x,
+    y: position.y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    focusable: true,
+    hasShadow: true,
+    show: false,
+    webPreferences: {
+      preload: getPreloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  }))
+
+  window.on('ready-to-show', () => {
+    window.show()
+    window.focus()
+  })
+
+  window.on('closed', () => {
+    noteEditorWindow = null
+  })
+
+  window.setAlwaysOnTop(true, 'screen-saver')
+  window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  const route = noteId ? `/note-editor?id=${encodeURIComponent(noteId)}` : '/note-editor'
+  loadRoute(window, route)
+
+  return window
+}
+
+export const closeNoteEditorWindow = () => {
+  noteEditorWindow?.close()
+}
+
+export const registerNoteTankShortcut = (runner: () => void | Promise<void>) => {
+  if (globalShortcut.isRegistered(noteTankAccelerator)) globalShortcut.unregister(noteTankAccelerator)
+  globalShortcut.register(noteTankAccelerator, () => {
+    void runner()
+  })
+}
+
+export const unregisterNoteTankShortcut = () => {
+  if (globalShortcut.isRegistered(noteTankAccelerator)) globalShortcut.unregister(noteTankAccelerator)
+}
+
+export const broadcastNoteChange = () => {
+  BrowserWindow.getAllWindows().forEach((win: BrowserWindowType) => {
+    win.webContents.send('notes:changed')
+  })
+}
+
+// --- Airu Window Management ---
+
+const airuAccelerator = 'Alt+Shift+A'
+
+export const createAiruPopupWindow = () => {
+  const position = computePopupPosition(360, 400)
+
+  if (airuPopupWindow) {
+    airuPopupWindow.setPosition(position.x, position.y)
+    airuPopupWindow.show()
+    airuPopupWindow.focus()
+    loadRoute(airuPopupWindow, '/airu-popup')
+    return airuPopupWindow
+  }
+
+  const window = (airuPopupWindow = new BrowserWindow({
+    width: 360,
+    height: 400,
+    x: position.x,
+    y: position.y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    focusable: true,
+    hasShadow: true,
+    show: false,
+    webPreferences: {
+      preload: getPreloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  }))
+
+  window.on('ready-to-show', () => {
+    window.show()
+    window.focus()
+  })
+
+  window.on('closed', () => {
+    airuPopupWindow = null
+  })
+
+  window.setAlwaysOnTop(true, 'screen-saver')
+  window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  loadRoute(window, '/airu-popup')
+
+  return window
+}
+
+export const closeAiruPopupWindow = () => {
+  airuPopupWindow?.close()
+}
+
+export const createAiruPromptEditorWindow = () => {
+  const position = computePopupPosition(420, 480)
+
+  if (airuPromptEditorWindow) {
+    airuPromptEditorWindow.setPosition(position.x, position.y)
+    airuPromptEditorWindow.show()
+    airuPromptEditorWindow.focus()
+    return airuPromptEditorWindow
+  }
+
+  const window = (airuPromptEditorWindow = new BrowserWindow({
+    width: 420,
+    height: 480,
+    x: position.x,
+    y: position.y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: true,
+    focusable: true,
+    hasShadow: true,
+    show: false,
+    webPreferences: {
+      preload: getPreloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  }))
+
+  window.on('ready-to-show', () => {
+    window.show()
+    window.focus()
+  })
+
+  window.on('closed', () => {
+    airuPromptEditorWindow = null
+  })
+
+  window.setAlwaysOnTop(true, 'screen-saver')
+  window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  loadRoute(window, '/airu-prompt-editor')
+
+  return window
+}
+
+export const closeAiruPromptEditorWindow = () => {
+  airuPromptEditorWindow?.close()
+}
+
+export const registerAiruShortcut = (runner: () => void | Promise<void>) => {
+  if (globalShortcut.isRegistered(airuAccelerator)) globalShortcut.unregister(airuAccelerator)
+  globalShortcut.register(airuAccelerator, () => {
+    void runner()
+  })
+}
+
+export const unregisterAiruShortcut = () => {
+  if (globalShortcut.isRegistered(airuAccelerator)) globalShortcut.unregister(airuAccelerator)
+}
+
+export const broadcastAiruResult = (payload: AiruResult) => {
+  BrowserWindow.getAllWindows().forEach((win: BrowserWindowType) => {
+    win.webContents.send('airu:result', payload)
+  })
+}
+
+export const broadcastAiruPromptsChange = () => {
+  BrowserWindow.getAllWindows().forEach((win: BrowserWindowType) => {
+    win.webContents.send('airu:prompts-changed')
   })
 }

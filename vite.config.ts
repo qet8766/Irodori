@@ -19,6 +19,11 @@ export default defineConfig({
           return startup(undefined, { env })
         },
         vite: {
+          resolve: {
+            alias: {
+              '@shared': path.resolve(__dirname, 'src/shared'),
+            },
+          },
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
@@ -36,6 +41,11 @@ export default defineConfig({
           index: path.join(__dirname, 'src/preload/index.ts'),
         },
         vite: {
+          resolve: {
+            alias: {
+              '@shared': path.resolve(__dirname, 'src/shared'),
+            },
+          },
           build: {
             outDir: 'dist-electron',
             rollupOptions: {

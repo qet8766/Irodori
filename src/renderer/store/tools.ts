@@ -6,7 +6,7 @@ type ToolStore = {
 }
 
 const useToolStore = create<ToolStore>((set, get) => ({
-  activeTools: { TooDoo: false, Transly: false },
+  activeTools: { TooDoo: false, Transly: false, NoteTank: false, Airu: false },
   toggleTool: (tool: string) => {
     const nextState = !get().activeTools[tool]
     window.irodori.toggleTool(tool, nextState)
