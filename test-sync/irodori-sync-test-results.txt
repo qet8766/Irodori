@@ -1,0 +1,101 @@
+Irodori Sync Logic Test - Started at 2025-11-28T14:55:04.449Z
+Node.js v22.21.1
+
+
+============================================================
+TEST 1: Connect to SQLite Cloud
+============================================================
+✅ Connected to SQLite Cloud
+
+============================================================
+TEST 2: Create Fresh Local Database
+============================================================
+✅ Created fresh local database
+   Initial task count: 0
+
+============================================================
+TEST 3: Fetch Raw Cloud Data
+============================================================
+Raw cloud data:
+   Tasks: 10
+   Project Items: 2
+
+First 5 tasks from cloud:
+   1. id="bdf7e3c0-d133-4622-85f9-0697c617eda6"
+      name="ding"
+      section="project"
+      created="2025-11-24T10:26:01.846Z"
+   2. id="34ee278d-3df5-4a06-ba89-82ebd275ed3d"
+      name="dfsdfsfds"
+      section="project"
+      created="2025-11-24T11:32:37.863Z"
+   3. id="6b9f1c10-02f9-4318-a057-d3c812f24b0e"
+      name="서예윤 선생님 논문"
+      section="long_term"
+      created="2025-11-26T02:41:57.287Z"
+   4. id="1089b7f7-ec31-4cfa-b754-67d61c38e61d"
+      name="변호사 답변"
+      section="short_term"
+      created="2025-11-27T02:40:08.535Z"
+   5. id="5e1eef48-0f37-4f5b-94d5-c58da112031f"
+      name="슈파스 서류 보내기"
+      section="short_term"
+      created="2025-11-27T02:36:55.635Z"
+
+============================================================
+TEST 4: Run syncFromCloud (Irodori Logic)
+============================================================
+Starting syncFromCloud...
+📥 Fetched from cloud: 10 tasks, 2 notes
+📝 Mapped 10 tasks for local DB
+   1. [bdf7e3c0...] "ding" (project)
+   2. [34ee278d...] "dfsdfsfds" (project)
+   3. [6b9f1c10...] "서예윤 선생님 논문" (long_term)
+📋 Valid task IDs: 10 (10 from cloud + 0 local)
+📝 Mapped 1 notes for local DB (filtered from 2)
+✅ Upserted 10 tasks to local DB
+✅ Upserted 1 notes to local DB
+syncFromCloud returned: true
+
+============================================================
+TEST 5: Read Local Tasks After Sync
+============================================================
+Local tasks after sync: 10
+
+First 5 local tasks:
+   1. [222cc8f9...] "sync 2" (short_term)
+   2. [fa5b2d83...] "sync test" (short_term)
+   3. [40dbd0d3...] "SPASS 뷰어 보고서" (short_term)
+   4. [bdb2e77c...] "권석순 선생님 IRB 생성" (short_term)
+   5. [1089b7f7...] "변호사 답변" (short_term)
+
+============================================================
+TEST 6: Verify Data Integrity
+============================================================
+Cloud task IDs: 10
+Local task IDs: 10
+✅ All cloud tasks exist locally
+
+============================================================
+TEST 7: Second Sync (Idempotency Test)
+============================================================
+Tasks before second sync: 10
+Starting syncFromCloud...
+📥 Fetched from cloud: 10 tasks, 2 notes
+📝 Mapped 10 tasks for local DB
+   1. [bdf7e3c0...] "ding" (project)
+   2. [34ee278d...] "dfsdfsfds" (project)
+   3. [6b9f1c10...] "서예윤 선생님 논문" (long_term)
+📋 Valid task IDs: 10 (10 from cloud + 10 local)
+📝 Mapped 1 notes for local DB (filtered from 2)
+✅ Upserted 10 tasks to local DB
+✅ Upserted 1 notes to local DB
+Tasks after second sync: 10
+✅ Sync is idempotent (same count)
+
+============================================================
+TEST SUMMARY
+============================================================
+Started: 2025-11-28T14:55:04.449Z
+Ended: 2025-11-28T14:55:05.566Z
+Duration: 1117ms
