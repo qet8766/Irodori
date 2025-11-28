@@ -427,6 +427,10 @@ const processSyncQueue = async () => {
       return
     }
 
+    // First, pull latest data from cloud
+    await syncFromCloud()
+
+    // Then process any pending push items
     const items = getPendingSyncItems()
     if (items.length === 0) return
 
