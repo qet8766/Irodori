@@ -455,7 +455,8 @@ export const startSyncScheduler = () => {
 
   // Also process immediately on start
   void processSyncQueue()
-  console.info('[Irodori] Sync scheduler started')
+  const pendingCount = getSyncQueueCount()
+  console.info(`[Irodori] Sync scheduler started - ${pendingCount} items pending in queue`)
 }
 
 export const stopSyncScheduler = () => {
@@ -563,7 +564,13 @@ const fetchCloudSnapshot = async () => {
 
 const syncFromCloud = async () => {
   const snapshot = await fetchCloudSnapshot()
-  if (!snapshot) return false
+  if (!snapshot) {
+    console.warn('[Irodori] Cloud sync skipped - unable to fetch snapshot (offline or connection error)')
+    return false
+  }
+  if (snapshot.tasks.length === 0 && snapshot.notes.length === 0) {
+    console.info('[Irodori] Cloud database is empty - no data to sync down')
+  }
   const database = ensureDb()
   const now = Date.now()
   const syncStartTime = now
@@ -582,14 +589,25 @@ const syncFromCloud = async () => {
     }
   })
 
-  const noteRows: ProjectNoteRow[] = snapshot.notes.map((row) => ({
-    id: row.id,
-    task_id: row.task_id,
-    content: (row.text ?? '').trim(),
-    created_at: now,
-    updated_at: now,
-    is_deleted: 0,
-  }))
+  // Build a set of valid task IDs (from cloud + existing local) to filter orphaned notes
+  const localTaskIds = database
+    .prepare('SELECT id FROM tasks WHERE is_deleted = 0')
+    .all() as { id: string }[]
+  const validTaskIds = new Set([
+    ...taskRows.map((t) => t.id),
+    ...localTaskIds.map((t) => t.id),
+  ])
+
+  const noteRows: ProjectNoteRow[] = snapshot.notes
+    .filter((row) => validTaskIds.has(row.task_id)) // Skip notes with missing parent tasks
+    .map((row) => ({
+      id: row.id,
+      task_id: row.task_id,
+      content: (row.text ?? '').trim(),
+      created_at: now,
+      updated_at: now,
+      is_deleted: 0,
+    }))
 
   if (taskRows.length) {
     const upsertTask = database.prepare(
@@ -630,7 +648,11 @@ const syncFromCloud = async () => {
 
   // Update last sync timestamp
   setLastSyncAt(syncStartTime)
-  console.info(`[Irodori] Cloud sync completed at ${new Date(syncStartTime).toISOString()}`)
+  console.info(
+    `[Irodori] Cloud sync completed at ${new Date(syncStartTime).toISOString()} - ` +
+    `Tasks: ${snapshot.tasks.length} from cloud, ${taskRows.length} upserted | ` +
+    `Notes: ${snapshot.notes.length} from cloud, ${noteRows.length} upserted`
+  )
 
   return true
 }
