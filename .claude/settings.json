@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [],
+    "deny": []
+  },
+  "env": {
+    "TEST_VAR": "hello_from_claude",
+    "npm_config_msvs_version": "2022",
+    "npm_config_python": "C:\\Python311\\python.exe"
+  }
+}

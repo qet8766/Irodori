@@ -27,7 +27,6 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['better-sqlite3'],
               output: {
                 format: 'esm',
                 entryFileNames: 'main.mjs',

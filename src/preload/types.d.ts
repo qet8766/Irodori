@@ -58,6 +58,12 @@ declare global {
         close: () => void
       }
       onNotesChanged: (callback: () => void) => void
+      settings: {
+        getApiUrl: () => Promise<string>
+        setApiUrl: (url: string) => Promise<void>
+        getSyncStatus: () => Promise<{ isOnline: boolean; pendingCount: number; lastSyncAt: number }>
+        triggerSync: () => Promise<void>
+      }
       airu: {
         prompts: {
           list: () => Promise<AiruPrompt[]>

@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  irodori-api:
+    build: .
+    container_name: irodori-api
+    restart: unless-stopped
+    ports:
+      - "3456:3456"
+    volumes:
+      - irodori-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3456
+      - DATA_DIR=/app/data
+
+volumes:
+  irodori-data:
+    driver: local
