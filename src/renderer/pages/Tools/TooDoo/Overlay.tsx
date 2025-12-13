@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState, type DragEvent, type MouseEvent } from 'react'
 import type { ProjectNote, Task, TaskCategory } from '@shared/types'
 
-const normalCategories: { key: TaskCategory; title: string; tone: 'cyan' | 'amber' | 'violet' | 'crimson' }[] = [
-  { key: 'short_term', title: 'Short-term', tone: 'cyan' },
-  { key: 'long_term', title: 'Long-term', tone: 'amber' },
-  { key: 'project', title: 'Projects', tone: 'violet' },
+const FONT_SIZE_KEY = 'toodoo-font-size'
+const DEFAULT_FONT_SIZE = 14
+
+const normalCategories: { key: TaskCategory; tone: 'cyan' | 'amber' | 'violet' | 'crimson' }[] = [
+  { key: 'short_term', tone: 'cyan' },
+  { key: 'long_term', tone: 'amber' },
+  { key: 'project', tone: 'violet' },
 ]
 
-const immediateCategory = { key: 'immediate', title: 'Immediate', tone: 'crimson' } as const
+const immediateCategory = { key: 'immediate', tone: 'crimson' } as const
 
 const TooDooOverlay = () => {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -15,6 +18,16 @@ const TooDooOverlay = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
   const [noteModal, setNoteModal] = useState<{ taskId: string | null; text: string }>({ taskId: null, text: '' })
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem(FONT_SIZE_KEY)
+    return saved ? parseInt(saved, 10) : DEFAULT_FONT_SIZE
+  })
+
+  const handleFontSizeChange = (delta: number) => {
+    const newSize = Math.max(10, Math.min(24, fontSize + delta))
+    setFontSize(newSize)
+    localStorage.setItem(FONT_SIZE_KEY, String(newSize))
+  }
 
   const fetchTasks = useCallback(async () => {
     setIsLoading(true)
@@ -106,27 +119,26 @@ const TooDooOverlay = () => {
   }
 
   return (
-    <div className={`overlay-shell ${isImmediateMode ? 'immediate-mode' : ''}`}>
-      <div className="overlay-topbar" title="Drag to move">
+    <div className={`overlay-shell toodoo-compact ${isImmediateMode ? 'immediate-mode' : ''}`} style={{ fontSize: `${fontSize}px` }}>
+      <div className="overlay-topbar-fixed" title="Drag to move">
         <div className="grip-dots"><span /><span /><span /></div>
-        <span className="topbar-label">{isImmediateMode ? 'Immediate mode' : 'Drag to move'}</span>
-      </div>
-      <div className="overlay-header">
-        <div className="overlay-title">{isImmediateMode ? 'Immediate focus' : 'TooDoo'}</div>
-        <div className="pill-row"><div className="pill no-drag">{isImmediateMode ? 'Resolve to exit' : 'Always on top'}</div></div>
+        <div className="topbar-controls no-drag">
+          <button className="font-btn" onClick={() => handleFontSizeChange(-1)}>A-</button>
+          <button className="font-btn" onClick={() => handleFontSizeChange(1)}>A+</button>
+        </div>
       </div>
 
       <div className="task-columns">
         {visibleCategories.map((cat) => {
           const list = tasksByCategory[cat.key] ?? []
           return (
-            <section key={cat.key} className={`task-section tone-${cat.tone}`} onDragOver={allowDrop} onDrop={handleDropOnCategory(cat.key)}>
-              <div className="section-header simple">
-                <div className="section-title"><span className="section-dot" /><h3>{cat.title}</h3></div>
-                <div className="count-pill">{list.length}</div>
+            <section key={cat.key} className={`task-section compact tone-${cat.tone}`} onDragOver={allowDrop} onDrop={handleDropOnCategory(cat.key)}>
+              <div className="section-header-compact">
+                <span className="section-dot" />
+                <span className="count-pill">{list.length}</span>
               </div>
 
-              {!isLoading && list.length === 0 && <p className="muted">No items yet.</p>}
+              {!isLoading && list.length === 0 && <p className="muted compact-muted">Empty</p>}
               <div className="task-list">
                 {list.map((task) => {
                   const form = editing[task.id]
