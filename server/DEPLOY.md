@@ -21,7 +21,7 @@ Copy the entire `server/` folder to your Synology NAS.
 3. Upload these files:
    - `package.json`
    - `index.js`
-   - `db.js`
+   - `store.js`
    - `Dockerfile`
    - `docker-compose.yml`
 
@@ -117,11 +117,11 @@ netstat -tlnp | grep 3456
 
 ## Data Location
 
-The SQLite database is stored in a Docker volume named `irodori-data`.
+The API persists data to a JSON file in a Docker volume named `irodori-data`.
 
 To backup:
 ```bash
-docker cp irodori-api:/app/data/irodori.db ./irodori-backup.db
+docker cp irodori-api:/app/data/irodori-data.json ./irodori-backup.json
 ```
 
 To find the volume location:

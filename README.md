@@ -1,38 +1,71 @@
-# Irodori — Electron tool launcher
+# Irodori — Electron tools deck
 
-Irodori is an Electron shell for hosting a growing collection of small tools. The first embedded tool is **TooDoo**, an always-on-top overlay todo widget backed by an offline-first SQLite queue.
+Irodori is a Windows-focused Electron desktop app: a launcher window that hosts a small set of utilities implemented as always-on-top overlays and cursor-positioned popups.
+
+## Tools
+
+- **TooDoo** — always-on-top todo overlay with category buckets and quick-add popups (hotkeys per category).
+- **Transly** — global-hotkey clipboard helper (copy selection → call OpenAI → paste correction) plus “translation options” popup.
+- **NoteTank** — notes overlay + note editor popup (Ctrl+F search inside the overlay).
+- **Airu** — global-hotkey LLM prompt popup + prompt editor (OpenAI implemented; Gemini/Claude placeholders).
 
 ## Quick start
 
 ```bash
 npm install
-npm run dev           # starts Vite + Electron with auto-reload
+npm run dev
 ```
 
-Production build + pack (optional):
+## Scripts
 
 ```bash
-npm run electron:build
+npm run dev              # Vite + Electron (auto-reload)
+npm run build            # TypeScript check + Vite build
+npm run electron:build   # Build + package (electron-builder)
+npm run lint             # ESLint
 ```
 
-## Key scripts
+## Data & sync
 
-- `npm run dev` / `npm run electron:dev` — Vite dev server plus Electron main/preload via `vite-plugin-electron`.
-- `npm run build` — typecheck then build renderer + Electron bundles.
-- `npm run electron:build` — build and package with `electron-builder`.
+The Electron app stores a local JSON cache at `{app.getPath('userData')}/irodori-store.json` and maintains a `syncQueue` of pending REST operations while offline (see `src/main/db/database.ts`).
+
+An optional companion server lives in `server/` (Express + JSON file storage at `${DATA_DIR}/irodori-data.json`) and exposes:
+- `GET /api/health`
+- `GET/POST/PUT/DELETE /api/tasks` (+ project notes endpoints)
+- `GET/POST/PUT/DELETE /api/notes`
+- `GET/POST/PUT/DELETE /api/airu/prompts` (+ reorder)
+
+The app’s API URL is configurable in the launcher settings (default `http://localhost:3456`).
+
+## Hotkeys
+
+Defined in `src/main/shortcuts/definitions.ts`:
+
+- TooDoo quick add: `Alt+Shift+S` (short-term), `Alt+Shift+L` (long-term), `Alt+Shift+P` (project), `Alt+Shift+I` (immediate)
+- Transly: `Alt+Shift+T` (correct selection), `Alt+Shift+K` (translation options)
+- NoteTank: `Alt+Shift+N` (open note editor popup)
+- Airu: `Alt+Shift+A` (open Airu popup)
+
+Windows-only detail: Transly and Airu use a PowerShell + C# `SendInput` worker to send Ctrl+C / Ctrl+V to the active app (`src/main/services/keyboard.service.ts`).
 
 ## Project layout
 
 ```
 src/
-  main/        # Electron main process (window manager, IPC, DB)
-  preload/     # Exposed bridge API for renderer
-  renderer/    # React HashRouter UI (launcher + TooDoo overlay)
-  shared/      # Shared types (Todo)
+  main/        Electron main process (windows, IPC, shortcuts, sync, services)
+  preload/     Context bridge exposing window.irodori
+  renderer/    React UI (HashRouter)
+  shared/      Shared TypeScript domain types
+server/        Optional REST API server (Express + JSON storage)
 ```
 
-## Notes
+## Environment variables
 
-- Local storage lives at `{userData}/irodori.db` (better-sqlite3). All CRUD actions are mirrored into `sync_queue` for future cloud syncing.
-- Launcher toggles the TooDoo overlay through IPC; the overlay runs with a transparent, always-on-top window and a drag handle across the header surface.
-- Styling favors a glassy, neon-leaning palette to make the overlay legible on transparent backgrounds.
+- `OPENAI_API_KEY` — required for Transly hotkeys (OpenAI Responses API).
+- Airu uses an in-app OpenAI API key setting (editable in the Airu debug window) rather than `OPENAI_API_KEY`.
+- `server/` supports `PORT` (default `3456`) and `DATA_DIR` for JSON storage.
+
+## Build notes
+
+- This repo targets Windows; packaging is done via `electron-builder` (`npm run electron:build`).
+- `server/` is pure Node.js (no native DB modules). Docker is supported via `server/docker-compose.yml`.

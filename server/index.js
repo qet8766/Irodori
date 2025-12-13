@@ -5,7 +5,7 @@ import {
   addProjectNote, deleteProjectNote,
   getNotes, addNote, updateNote, deleteNote,
   getAiruPrompts, addAiruPrompt, updateAiruPrompt, deleteAiruPrompt, reorderAiruPrompts
-} from './db.js'
+} from './store.js'
 
 const app = express()
 const PORT = process.env.PORT || 3456

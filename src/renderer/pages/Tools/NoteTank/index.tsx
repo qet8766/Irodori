@@ -88,11 +88,11 @@ const NoteTank = () => {
 
         <div className="transly-card">
           <div className="card-row">
-            <h3>Cloud Sync</h3>
-            <span className="pill small-pill">SQLite Cloud</span>
+            <h3>Sync</h3>
+            <span className="pill small-pill">REST</span>
           </div>
           <p className="muted small-text">
-            Notes are automatically synced to SQLite Cloud. Changes are pushed in the background.
+            Notes sync to the configured API server when online. Offline changes are queued and pushed in the background.
           </p>
         </div>
       </div>
