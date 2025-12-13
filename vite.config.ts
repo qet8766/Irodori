@@ -70,4 +70,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
+  server: {
+    host: '127.0.0.1', // Force IPv4 to avoid Windows EACCES on ::1
+  },
 })

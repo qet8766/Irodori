@@ -21,3 +21,6 @@ export const broadcast = <T>(channel: BroadcastChannel, payload?: T) => {
 export const broadcastTaskChange = () => broadcast(CHANNELS.TASKS_CHANGED)
 export const broadcastNoteChange = () => broadcast(CHANNELS.NOTES_CHANGED)
 export const broadcastAiruPromptsChange = () => broadcast(CHANNELS.AIRU_PROMPTS_CHANGED)
+export const broadcastTranslyResult = <T>(result: T) => broadcast(CHANNELS.TRANSLY_RESULT, result)
+export const broadcastTranslateOptionsResult = <T>(result: T) => broadcast(CHANNELS.TRANSLY_OPTIONS_RESULT, result)
+export const broadcastAiruResult = <T>(result: T) => broadcast(CHANNELS.AIRU_RESULT, result)

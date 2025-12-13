@@ -23,58 +23,74 @@ import {
 import { app, BrowserWindow, ipcMain, clipboard } from './electron'
 import type { TaskCategory, AiruProvider, AiruSettings } from '@shared/types'
 import {
-  closeTooDooOverlay,
   configureRendererTarget,
   createLauncherWindow,
   createTooDooOverlay,
-  createQuickAddWindow,
-  registerQuickAddShortcuts,
-  unregisterQuickAddShortcuts,
-  broadcastTaskChange,
-  registerTranslyShortcut,
-  unregisterTranslyShortcut,
-  broadcastTranslyResult,
-  registerTranslateOptionsShortcut,
-  unregisterTranslateOptionsShortcut,
-  createTranslateOptionsWindow,
-  closeTranslateOptionsWindow,
-  broadcastTranslateOptionsResult,
+  closeTooDooOverlay,
   createNoteTankOverlay,
   closeNoteTankOverlay,
+  createQuickAddWindow,
+  createTranslateOptionsWindow,
+  closeTranslateOptionsWindow,
   createNoteEditorWindow,
   closeNoteEditorWindow,
-  registerNoteTankShortcut,
-  unregisterNoteTankShortcut,
-  broadcastNoteChange,
   createAiruPopupWindow,
   closeAiruPopupWindow,
   createAiruPromptEditorWindow,
   closeAiruPromptEditorWindow,
-  registerAiruShortcut,
-  unregisterAiruShortcut,
-  broadcastAiruResult,
+} from './windows'
+import {
+  correctFromActiveSelection,
+  translateOptions,
+  pasteSelectedOption,
+  executeAiruRequest,
+  sendKeyboardCommand,
+  sleep,
+} from './services'
+import { registerShortcut, unregisterShortcut, TOODOO_CATEGORY_SHORTCUTS } from './shortcuts'
+import {
+  broadcastTaskChange,
+  broadcastNoteChange,
   broadcastAiruPromptsChange,
-} from './windowManager'
-import { correctFromActiveSelection, translateOptions, pasteSelectedOption } from './transly'
-import { executeAiruRequest } from './airu'
-import { sendKeyboardCommand, sleep } from './utils/keyboard'
+  broadcastTranslyResult,
+  broadcastTranslateOptionsResult,
+  broadcastAiruResult,
+} from './broadcast'
+import { registerSettingsIpc } from './ipc/settings.ipc'
 
 const devServerUrl =
   process.env.VITE_DEV_SERVER_URL || process.env.MAIN_WINDOW_VITE_DEV_SERVER_URL || 'http://localhost:5173/'
 
 const indexHtml = path.join(app.getAppPath(), 'dist', 'index.html')
 
+const registerQuickAddShortcuts = () => {
+  for (const [_accelerator, category] of Object.entries(TOODOO_CATEGORY_SHORTCUTS)) {
+    const shortcutId = `toodoo:${category}` as const
+    registerShortcut(shortcutId, () => {
+      createQuickAddWindow(category)
+    })
+  }
+}
+
+const unregisterQuickAddShortcuts = () => {
+  for (const [_accelerator, category] of Object.entries(TOODOO_CATEGORY_SHORTCUTS)) {
+    const shortcutId = `toodoo:${category}` as const
+    unregisterShortcut(shortcutId)
+  }
+}
+
 const bootstrap = async () => {
   initDatabase()
+  registerSettingsIpc(ipcMain)
   configureRendererTarget({ devServerUrl, indexHtml })
   createLauncherWindow()
   registerQuickAddShortcuts()
   // Activate all tools by default
   createTooDooOverlay()
-  registerTranslyShortcut(handleTranslyHotkey)
-  registerTranslateOptionsShortcut(handleTranslateOptionsHotkey)
-  registerNoteTankShortcut(handleNoteTankHotkey) // Hotkey only, no overlay
-  registerAiruShortcut(handleAiruHotkey)
+  registerShortcut('transly:correct', handleTranslyHotkey)
+  registerShortcut('transly:translate', handleTranslateOptionsHotkey)
+  registerShortcut('notetank:editor', handleNoteTankHotkey) // Hotkey only, no overlay
+  registerShortcut('airu:popup', handleAiruHotkey)
 }
 
 app.whenReady().then(bootstrap)
@@ -104,10 +120,10 @@ app.on('activate', () => {
 
 app.on('window-all-closed', () => {
   unregisterQuickAddShortcuts()
-  unregisterTranslyShortcut()
-  unregisterTranslateOptionsShortcut()
-  unregisterNoteTankShortcut()
-  unregisterAiruShortcut()
+  unregisterShortcut('transly:correct')
+  unregisterShortcut('transly:translate')
+  unregisterShortcut('notetank:editor')
+  unregisterShortcut('airu:popup')
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -126,20 +142,20 @@ ipcMain.on('toggle-tool', (_event: IpcMainEvent, toolName: string, isActive: boo
     isActive ? createTooDooOverlay() : closeTooDooOverlay()
   } else if (toolName === 'Transly') {
     if (isActive) {
-      registerTranslyShortcut(handleTranslyHotkey)
-      registerTranslateOptionsShortcut(handleTranslateOptionsHotkey)
+      registerShortcut('transly:correct', handleTranslyHotkey)
+      registerShortcut('transly:translate', handleTranslateOptionsHotkey)
     } else {
-      unregisterTranslyShortcut()
-      unregisterTranslateOptionsShortcut()
+      unregisterShortcut('transly:correct')
+      unregisterShortcut('transly:translate')
     }
   } else if (toolName === 'NoteTank') {
     // Hotkey is always registered at bootstrap, toggle only controls overlay visibility
     isActive ? createNoteTankOverlay() : closeNoteTankOverlay()
   } else if (toolName === 'Airu') {
     if (isActive) {
-      registerAiruShortcut(handleAiruHotkey)
+      registerShortcut('airu:popup', handleAiruHotkey)
     } else {
-      unregisterAiruShortcut()
+      unregisterShortcut('airu:popup')
     }
   }
 })
