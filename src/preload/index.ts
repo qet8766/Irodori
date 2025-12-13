@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, clipboard } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import type { Note, ProjectNote, Task, AiruPrompt, AiruResult, AiruSettings, AiruProvider } from '@shared/types'
 
 // Tasks (TooDoo) API
@@ -28,18 +28,6 @@ const notesApi = {
 const noteEditorApi = {
   open: (noteId?: string) => ipcRenderer.send('note-editor:open', noteId),
   close: () => ipcRenderer.send('note-editor:close'),
-}
-
-// Transly API
-const translyApi = {
-  correctWord: (word: string, paste = true) =>
-    ipcRenderer.invoke('transly:correct', { word, paste }) as Promise<{
-      input: string
-      output: string
-      pasted: boolean
-      error?: string
-      timing?: { totalMs: number; copyMs?: number; apiMs?: number; pasteMs?: number }
-    }>,
 }
 
 // Translate Options API
@@ -138,8 +126,7 @@ const api = {
   noteEditor: noteEditorApi,
   onNotesChanged,
 
-  // Transly
-  transly: translyApi,
+  // Transly (hotkey-driven; results are broadcast)
   translateOptions: translateOptionsApi,
   onTranslyResult,
   onTranslateOptionsResult,
@@ -149,12 +136,6 @@ const api = {
 
   // Settings
   settings: settingsApi,
-
-  // Clipboard utilities
-  clipboard: {
-    readText: () => clipboard.readText(),
-    writeText: (text: string) => clipboard.writeText(text ?? ''),
-  },
 }
 
 contextBridge.exposeInMainWorld('irodori', api)
