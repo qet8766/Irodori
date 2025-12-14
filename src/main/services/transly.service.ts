@@ -166,9 +166,9 @@ export const translateOptions = async (): Promise<TranslateOptionsResult> => {
       model: MODEL,
       input: `A Korean word or short phrase will be given. Give up to 6 options to translate into English. Since there can be diverse meanings and contexts, try to give a diverse range of options.\n\nKorean: ${copiedText}`,
       reasoning: { effort: 'low' },
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
+      text: {
+        format: {
+          type: 'json_schema',
           name: 'translation_options',
           schema: {
             type: 'object',
