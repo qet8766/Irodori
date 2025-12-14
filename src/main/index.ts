@@ -72,7 +72,7 @@ let lastTranslyTap = 0
 let translyIntentToken = 0
 
 const registerQuickAddShortcuts = () => {
-  for (const [_accelerator, category] of Object.entries(TOODOO_CATEGORY_SHORTCUTS)) {
+  for (const [, category] of Object.entries(TOODOO_CATEGORY_SHORTCUTS)) {
     const shortcutId = `toodoo:${category}` as const
     registerShortcut(shortcutId, () => {
       createQuickAddWindow(category)
@@ -81,7 +81,7 @@ const registerQuickAddShortcuts = () => {
 }
 
 const unregisterQuickAddShortcuts = () => {
-  for (const [_accelerator, category] of Object.entries(TOODOO_CATEGORY_SHORTCUTS)) {
+  for (const [, category] of Object.entries(TOODOO_CATEGORY_SHORTCUTS)) {
     const shortcutId = `toodoo:${category}` as const
     unregisterShortcut(shortcutId)
   }
@@ -187,7 +187,11 @@ const handleAiruHotkey = () => {
 
 ipcMain.on('toggle-tool', (_event: IpcMainEvent, toolName: string, isActive: boolean) => {
   if (toolName === 'TooDoo') {
-    isActive ? createTooDooOverlay() : closeTooDooOverlay()
+    if (isActive) {
+      createTooDooOverlay()
+    } else {
+      closeTooDooOverlay()
+    }
   } else if (toolName === 'Transly') {
     if (isActive) {
       registerShortcut('transly:correct', handleTranslyHotkey)
@@ -198,7 +202,11 @@ ipcMain.on('toggle-tool', (_event: IpcMainEvent, toolName: string, isActive: boo
     }
   } else if (toolName === 'NoteTank') {
     // Hotkey is always registered at bootstrap, toggle only controls overlay visibility
-    isActive ? createNoteTankOverlay() : closeNoteTankOverlay()
+    if (isActive) {
+      createNoteTankOverlay()
+    } else {
+      closeNoteTankOverlay()
+    }
   } else if (toolName === 'Airu') {
     if (isActive) {
       registerShortcut('airu:popup', handleAiruHotkey)
@@ -209,13 +217,17 @@ ipcMain.on('toggle-tool', (_event: IpcMainEvent, toolName: string, isActive: boo
 })
 
 // --- TooDoo Handlers ---
-ipcMain.handle('tasks:list', (_event: IpcMainInvokeEvent) => getTasks())
+ipcMain.handle('tasks:list', (_event: IpcMainInvokeEvent) => {
+  void _event
+  return getTasks()
+})
 ipcMain.handle(
   'tasks:add',
   (
     _event: IpcMainInvokeEvent,
     payload: { id: string; title: string; description?: string; category: TaskCategory; isDone?: boolean },
   ) => {
+    void _event
     const task = addTask(payload)
     broadcastTaskChange()
     return task
@@ -223,34 +235,43 @@ ipcMain.handle(
 )
 ipcMain.handle(
   'tasks:update',
-  (_event: IpcMainInvokeEvent, payload: { id: string; title?: string; description?: string | null; isDone?: boolean; category?: TaskCategory }) => {
+  (
+    _event: IpcMainInvokeEvent,
+    payload: { id: string; title?: string; description?: string | null; isDone?: boolean; category?: TaskCategory },
+  ) => {
+    void _event
     const task = updateTask(payload)
     broadcastTaskChange()
     return task
   },
 )
 ipcMain.handle('tasks:delete', (_event: IpcMainInvokeEvent, id: string) => {
+  void _event
   deleteTask(id)
   broadcastTaskChange()
   return { id }
 })
 ipcMain.handle('tasks:note:add', (_event: IpcMainInvokeEvent, payload: { id: string; taskId: string; content: string }) => {
+  void _event
   const note = addProjectNote(payload)
   broadcastTaskChange()
   return note
 })
 ipcMain.handle('tasks:note:delete', (_event: IpcMainInvokeEvent, id: string) => {
+  void _event
   deleteProjectNote(id)
   broadcastTaskChange()
   return { id }
 })
 
 ipcMain.on('quick-add:open', (_event: IpcMainEvent, category: string) => {
+  void _event
   createQuickAddWindow(category)
 })
 
 // --- Translate Options Handlers ---
 ipcMain.on('translate-options:select', async (_event: IpcMainEvent, option: string) => {
+  void _event
   closeTranslateOptionsWindow()
   await pasteSelectedOption(option)
 })
@@ -260,10 +281,14 @@ ipcMain.on('translate-options:close', () => {
 })
 
 // --- NoteTank Handlers ---
-ipcMain.handle('notes:list', (_event: IpcMainInvokeEvent) => getNotes())
+ipcMain.handle('notes:list', (_event: IpcMainInvokeEvent) => {
+  void _event
+  return getNotes()
+})
 ipcMain.handle(
   'notes:add',
   (_event: IpcMainInvokeEvent, payload: { id: string; title: string; content: string }) => {
+    void _event
     const note = addNote(payload)
     broadcastNoteChange()
     return note
@@ -272,18 +297,21 @@ ipcMain.handle(
 ipcMain.handle(
   'notes:update',
   (_event: IpcMainInvokeEvent, payload: { id: string; title?: string; content?: string }) => {
+    void _event
     const note = updateNote(payload)
     broadcastNoteChange()
     return note
   },
 )
 ipcMain.handle('notes:delete', (_event: IpcMainInvokeEvent, id: string) => {
+  void _event
   deleteNote(id)
   broadcastNoteChange()
   return { id }
 })
 
 ipcMain.on('note-editor:open', (_event: IpcMainEvent, noteId?: string) => {
+  void _event
   createNoteEditorWindow(noteId)
 })
 
@@ -292,7 +320,10 @@ ipcMain.on('note-editor:close', () => {
 })
 
 // --- Airu Handlers ---
-ipcMain.handle('airu:prompts:list', (_event: IpcMainInvokeEvent) => getAiruPrompts())
+ipcMain.handle('airu:prompts:list', (_event: IpcMainInvokeEvent) => {
+  void _event
+  return getAiruPrompts()
+})
 
 ipcMain.handle(
   'airu:prompts:add',
@@ -313,21 +344,27 @@ ipcMain.handle(
 )
 
 ipcMain.handle('airu:prompts:delete', (_event: IpcMainInvokeEvent, id: string) => {
+  void _event
   deleteAiruPrompt(id)
   broadcastAiruPromptsChange()
   return { id }
 })
 
 ipcMain.handle('airu:prompts:reorder', (_event: IpcMainInvokeEvent, orderedIds: string[]) => {
+  void _event
   reorderAiruPrompts(orderedIds)
   broadcastAiruPromptsChange()
 })
 
-ipcMain.handle('airu:settings:get', (_event: IpcMainInvokeEvent) => getAiruSettings())
+ipcMain.handle('airu:settings:get', (_event: IpcMainInvokeEvent) => {
+  void _event
+  return getAiruSettings()
+})
 
 ipcMain.handle(
   'airu:settings:set',
   (_event: IpcMainInvokeEvent, settings: Partial<AiruSettings>) => {
+    void _event
     setAiruSettings(settings)
   },
 )
@@ -367,6 +404,7 @@ ipcMain.handle(
 )
 
 ipcMain.on('airu:paste', async (_event: IpcMainEvent, text: string) => {
+  void _event
   closeAiruPopupWindow()
   clipboard.writeText(text)
   await sleep(60)

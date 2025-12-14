@@ -1,29 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-type TranslyResult = {
-  input: string
-  output: string
-  pasted: boolean
-  error?: string
-  timing?: {
-    totalMs: number
-    apiMs?: number
-    clipboardMs?: number
-    pasteMs?: number
-  }
-}
-
-type TranslateOptionsResult = {
-  input: string
-  options: string[]
-  error?: string
-  timing?: {
-    totalMs: number
-    apiMs?: number
-    clipboardMs?: number
-  }
-}
+type TranslyResult = Parameters<Parameters<typeof window.irodori.onTranslyResult>[0]>[0]
+type TranslateOptionsResult = Parameters<Parameters<typeof window.irodori.onTranslateOptionsResult>[0]>[0]
 
 const Transly = () => {
   const navigate = useNavigate()
@@ -32,11 +11,11 @@ const Transly = () => {
   const [status, setStatus] = useState('Waiting for Shift+Alt+T…')
 
   useEffect(() => {
-    window.irodori.onTranslyResult((payload: any) => {
+    window.irodori.onTranslyResult((payload: TranslyResult) => {
       setLastResult(payload)
       setStatus(payload.error ? `Error: ${payload.error}` : 'Hotkey run completed.')
     })
-    window.irodori.onTranslateOptionsResult((payload: any) => {
+    window.irodori.onTranslateOptionsResult((payload: TranslateOptionsResult) => {
       setLastOptionsResult(payload)
       setStatus(payload.error ? `Error: ${payload.error}` : `Options received: ${payload.options.length}`)
     })

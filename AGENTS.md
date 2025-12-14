@@ -1,6 +1,8 @@
 # Main Guidelines
 
-## When I order for a new function or change of code in Irodori, first give me your plan before we go on actual coding even when I do not overtly say so. Also ask me for whether to open new branch in git. When coding seems to be finished, suggest me to git add & commit. 
+## When I order for a new function or change of code in Irodori, first give me your plan before we go on actual coding even when I do not overtly say so. Ask those two things in one reply, so that I don't have to confirm multiple times. 
+
+## Also ask me for whether to open new branch in git. When coding seems to be finished, suggest me to git add & commit. 
 
 # Repository Guidelines
 

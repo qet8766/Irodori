@@ -36,10 +36,13 @@ const TooDooOverlay = () => {
     setIsLoading(false)
   }, [])
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  // Load tasks on mount and subscribe for external updates.
   useEffect(() => {
     fetchTasks()
     window.irodori.onTasksChanged(fetchTasks)
   }, [fetchTasks])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const tasksByCategory = useMemo(() => {
     const buckets: Record<TaskCategory, Task[]> = { short_term: [], long_term: [], project: [], immediate: [] }

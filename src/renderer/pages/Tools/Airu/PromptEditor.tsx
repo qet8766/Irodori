@@ -15,10 +15,13 @@ const PromptEditor = () => {
     setPrompts(list)
   }
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  // Fetch prompts on mount and subscribe to external changes.
   useEffect(() => {
     loadPrompts()
     window.irodori.airu.onPromptsChanged(loadPrompts)
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleClose = () => {
     window.irodori.airu.closePromptEditor()

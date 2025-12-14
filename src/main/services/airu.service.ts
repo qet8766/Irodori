@@ -65,6 +65,8 @@ export const callGemini = async (
   _prompt: string,
   _settings: AiruSettings,
 ): Promise<{ response: string; error?: string; apiMs: number }> => {
+  void _prompt
+  void _settings
   return { response: '', error: 'Gemini API not yet implemented', apiMs: 0 }
 }
 
@@ -73,6 +75,8 @@ export const callClaude = async (
   _prompt: string,
   _settings: AiruSettings,
 ): Promise<{ response: string; error?: string; apiMs: number }> => {
+  void _prompt
+  void _settings
   return { response: '', error: 'Claude API not yet implemented', apiMs: 0 }
 }
 

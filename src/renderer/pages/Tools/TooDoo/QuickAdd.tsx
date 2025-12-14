@@ -19,12 +19,15 @@ const QuickAdd = () => {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const formRef = useRef<HTMLFormElement | null>(null)
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  // Reset form when category query parameter changes.
   useEffect(() => {
     setTitle('')
     setDescription('')
     setStatus('')
     inputRef.current?.focus()
   }, [category])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

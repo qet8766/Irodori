@@ -25,7 +25,6 @@ const AiruPopup = () => {
   useEffect(() => {
     if (step === 'provider' || step === 'prompt') {
       listRef.current?.querySelector('button')?.focus()
-      setSelectedIndex(0)
     } else if (step === 'input') {
       inputRef.current?.focus()
     }
@@ -85,8 +84,10 @@ const AiruPopup = () => {
         handleClose()
       } else if (step === 'input') {
         setStep('prompt')
+        setSelectedIndex(0)
       } else if (step === 'prompt') {
         setStep('provider')
+        setSelectedIndex(0)
       } else {
         handleClose()
       }

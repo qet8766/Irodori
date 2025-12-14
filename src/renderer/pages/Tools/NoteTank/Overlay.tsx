@@ -15,10 +15,13 @@ const NoteTankOverlay = () => {
     setIsLoading(false)
   }, [])
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  // Load notes on mount and subscribe for external updates.
   useEffect(() => {
     fetchNotes()
     window.irodori.onNotesChanged(fetchNotes)
   }, [fetchNotes])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {

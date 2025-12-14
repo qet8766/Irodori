@@ -92,12 +92,13 @@ export const correctFromActiveSelection = async (isCancelled?: () => boolean): P
 
     // API Call with GPT-5.1 settings
     const apiStart = Date.now()
-    const response = await client.responses.create({
+    const responseParams: OpenAI.ResponseCreateParams = {
       model: MODEL,
       input: `Fix typos in this text. Return ONLY the corrected word/phrase, nothing else: ${copiedText}`,
       reasoning: { effort: 'none' },
       text: { verbosity: 'low' },
-    } as any)
+    }
+    const response = await client.responses.create(responseParams)
     const apiMs = Date.now() - apiStart
 
     if (isCancelled?.()) {
@@ -161,15 +162,14 @@ export const translateOptions = async (): Promise<TranslateOptionsResult> => {
 
     // API Call with structured outputs
     const apiStart = Date.now()
-    const response = await client.responses.create({
+    const responseParams: OpenAI.ResponseCreateParams = {
       model: MODEL,
       input: `A Korean word or short phrase will be given. Give up to 6 options to translate into English. Since there can be diverse meanings and contexts, try to give a diverse range of options.\n\nKorean: ${copiedText}`,
       reasoning: { effort: 'low' },
-      text: {
-        format: {
-          type: 'json_schema',
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
           name: 'translation_options',
-          strict: true,
           schema: {
             type: 'object',
             properties: {
@@ -182,9 +182,11 @@ export const translateOptions = async (): Promise<TranslateOptionsResult> => {
             required: ['options'],
             additionalProperties: false,
           },
+          strict: true,
         },
       },
-    } as any)
+    }
+    const response = await client.responses.create(responseParams)
     const apiMs = Date.now() - apiStart
 
     const parsed = JSON.parse(response.output_text || '{}')
