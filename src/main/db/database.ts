@@ -295,9 +295,9 @@ const processSyncQueue = async () => {
     // Pull latest from server
     await syncFromServer()
 
-    // Process pending queue items
+    // Process pending queue items (retry forever until online)
     const s = ensureStore()
-    const pendingItems = s.syncQueue.filter((item) => item.retryCount < 5)
+    const pendingItems = [...s.syncQueue]
 
     if (pendingItems.length === 0) return
 
