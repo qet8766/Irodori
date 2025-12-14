@@ -1,8 +1,8 @@
 # Main Guidelines
 
-## When I order for a new function or change of code in Irodori, first give me your plan before we go on actual coding even when I do not overtly say so. Ask those two things in one reply, so that I don't have to confirm multiple times. 
+## When I say 'merge', git add . & commit & push & merge
 
-## Also ask me for whether to open new branch in git. When coding seems to be finished, suggest me to git add & commit. 
+## after the 'merge', or a start of new session, make new branch with fitting name automatically if I do not overtly say not to. 
 
 # Repository Guidelines
 
@@ -18,6 +18,9 @@
 - `npm run electron:build` — full desktop package via electron-builder (Windows targets: portable & NSIS).  
 - `npm run lint` — ESLint over all TypeScript/React files.  
 - Server: `npm --prefix server install`, then `npm --prefix server run dev` (watch) or `npm --prefix server start`; `docker-compose up` in `server/` to run via Docker.
+
+## Runtime Requirements
+- Node.js **22.x** is required. `.nvmrc` pins the version; installs are engine-strict.
 
 ## Coding Style & Naming Conventions
 - Language: TypeScript ES2020 modules; React 19 with hooks; Zustand for state.  
