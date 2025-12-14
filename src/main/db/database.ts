@@ -44,7 +44,7 @@ const getDefaultStore = (): LocalStore => ({
   },
   syncQueue: [],
   settings: {
-    apiUrl: 'http://localhost:3456',
+    apiUrl: 'http://100.76.250.5:3456',
     airuSettings: { ...DEFAULT_AIRU_SETTINGS },
   },
 })
