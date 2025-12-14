@@ -61,7 +61,7 @@ const createResult = (
   },
 })
 
-export const correctFromActiveSelection = async (): Promise<TranslyResult> => {
+export const correctFromActiveSelection = async (isCancelled?: () => boolean): Promise<TranslyResult> => {
   const startTime = Date.now()
 
   clipboard.writeText('')
@@ -100,6 +100,10 @@ export const correctFromActiveSelection = async (): Promise<TranslyResult> => {
     } as any)
     const apiMs = Date.now() - apiStart
 
+    if (isCancelled?.()) {
+      return createResult(copiedText, '', false, startTime, 'cancelled', apiMs, clipboardMs)
+    }
+
     const corrected = response.output_text?.trim()
 
     if (!corrected) {
@@ -108,6 +112,9 @@ export const correctFromActiveSelection = async (): Promise<TranslyResult> => {
 
     const pasteStart = Date.now()
     clipboard.writeText(corrected)
+    if (isCancelled?.()) {
+      return createResult(copiedText, corrected, false, startTime, 'cancelled', apiMs, clipboardMs)
+    }
     await sleep(TIMING.PASTE_DELAY)
     await sendKeyboardCommand('V')
     const pasteMs = Date.now() - pasteStart

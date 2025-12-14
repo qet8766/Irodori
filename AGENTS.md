@@ -1,3 +1,7 @@
+# Main Guidelines
+
+## When I order for a new function or change of code in Irodori, first give me your plan before we go on actual coding even when I do not overtly say so. Also ask me for whether to open new branch in git. When coding seems to be finished, suggest me to git add & commit. 
+
 # Repository Guidelines
 
 ## Project Structure & Module Organization

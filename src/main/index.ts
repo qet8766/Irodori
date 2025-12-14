@@ -29,11 +29,13 @@ import {
   closeTooDooOverlay,
   createNoteTankOverlay,
   closeNoteTankOverlay,
+  getNoteTankOverlay,
   createQuickAddWindow,
   createTranslateOptionsWindow,
   closeTranslateOptionsWindow,
   createNoteEditorWindow,
   closeNoteEditorWindow,
+  getNoteEditorWindow,
   createAiruPopupWindow,
   closeAiruPopupWindow,
   createAiruPromptEditorWindow,
@@ -62,6 +64,12 @@ const devServerUrl =
   process.env.VITE_DEV_SERVER_URL || process.env.MAIN_WINDOW_VITE_DEV_SERVER_URL || 'http://localhost:5173/'
 
 const indexHtml = path.join(app.getAppPath(), 'dist', 'index.html')
+
+const DOUBLE_TAP_WINDOW_MS = 300
+
+let lastNoteTankTap = 0
+let lastTranslyTap = 0
+let translyIntentToken = 0
 
 const registerQuickAddShortcuts = () => {
   for (const [_accelerator, category] of Object.entries(TOODOO_CATEGORY_SHORTCUTS)) {
@@ -96,11 +104,27 @@ const bootstrap = async () => {
 app.whenReady().then(bootstrap)
 
 const handleTranslyHotkey = async () => {
-  // This function now handles the entire Copy -> API -> Paste flow
-  const result = await correctFromActiveSelection()
-  if (result) {
-    broadcastTranslyResult(result)
+  const now = Date.now()
+  const isDoubleTap = now - lastTranslyTap < DOUBLE_TAP_WINDOW_MS
+  lastTranslyTap = now
+
+  // Invalidate any in-flight actions from previous taps
+  const intentToken = ++translyIntentToken
+  const isCancelled = () => intentToken !== translyIntentToken
+
+  if (isDoubleTap) {
+    const result = await translateOptions()
+    if (isCancelled()) return
+    broadcastTranslateOptionsResult(result)
+    if (result.options.length > 0) {
+      createTranslateOptionsWindow(result.options, result.input)
+    }
+    return
   }
+
+  const result = await correctFromActiveSelection(isCancelled)
+  if (isCancelled()) return
+  broadcastTranslyResult(result)
 }
 
 const handleTranslateOptionsHotkey = async () => {
@@ -130,6 +154,30 @@ app.on('window-all-closed', () => {
 })
 
 const handleNoteTankHotkey = () => {
+  const now = Date.now()
+  const isDoubleTap = now - lastNoteTankTap < DOUBLE_TAP_WINDOW_MS
+  lastNoteTankTap = now
+
+  const overlay = getNoteTankOverlay()
+  const editor = getNoteEditorWindow()
+
+  if (isDoubleTap) {
+    if (overlay) {
+      closeNoteTankOverlay()
+      if (editor) {
+        closeNoteEditorWindow()
+      }
+      return
+    }
+    createNoteTankOverlay()
+    return
+  }
+
+  if (editor) {
+    closeNoteEditorWindow()
+    return
+  }
+
   createNoteEditorWindow()
 }
 
